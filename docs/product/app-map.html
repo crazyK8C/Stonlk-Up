@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}</style>
+<title>Stonk Up App Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: single reading column (max 1160px). Answer first, then the study-vs-gamble stance, the mind map, bucket details, the Event Lab deep dive, and build order. */
+:root {
+  --bg: #F6F4FF; --surface: #FFFFFF; --surface-2: #EEEAFE; --line: #D9D3F5;
+  --fg: #17132E; --muted: #514B73; --on-accent: #10140A; --accent-fill: #B8F35A;
+  --home: #4E7A10; --study: #0F6F8C; --practice: #6A4BE0; --lab: #B5541A; --reflect: #B3306E; --profile: #5E587F;
+  --bad: #B3304C;
+  --display: 'Bricolage Grotesque', 'Arial Narrow', system-ui, sans-serif;
+  --body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F0D1A; --surface: #1A1730; --surface-2: #221E40; --line: #34305E; --fg: #F4F2FF; --muted: #C2BCE3;
+    --home: #B8F35A; --study: #6FE0FF; --practice: #B49CFF; --lab: #FF9F5E; --reflect: #FF8FC7; --profile: #A9A3CF; --bad: #FF8FA5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F0D1A; --surface: #1A1730; --surface-2: #221E40; --line: #34305E; --fg: #F4F2FF; --muted: #C2BCE3;
+  --home: #B8F35A; --study: #6FE0FF; --practice: #B49CFF; --lab: #FF9F5E; --reflect: #FF8FC7; --profile: #A9A3CF; --bad: #FF8FA5;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.wrap { max-width: 1160px; margin: 0 auto; padding-block: 48px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 72px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.02em; }
+h1 { font-size: clamp(2.3rem, 5.2vw, 3.8rem); line-height: 1.02; font-weight: 800; }
+h2 { font-size: clamp(1.6rem, 3vw, 2.3rem); line-height: 1.1; font-weight: 800; }
+h3 { font-size: 1.15rem; line-height: 1.25; font-weight: 800; }
+p { margin: 0; }
+.eyebrow { font: 700 0.75rem/1 var(--body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 1.12rem; color: var(--muted); max-width: 66ch; }
+.section { display: flex; flex-direction: column; gap: 22px; }
+.head { display: flex; flex-direction: column; gap: 10px; max-width: 74ch; }
+.head p { color: var(--muted); }
+.note { font-size: 0.85rem; color: var(--muted); }
+
+/* tags */
+.tag { display: inline-block; font: 700 0.68rem/1 var(--mono); padding: 4px 7px; border-radius: 6px; border: 1.5px solid var(--line); color: var(--muted); white-space: nowrap; }
+.tag.live { border-color: var(--home); color: var(--home); }
+.tag.new { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--on-accent); }
+
+/* answer table */
+.table-box { overflow-x: auto; border-radius: 20px; border: 1px solid var(--line); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 0.92rem; }
+th, td { text-align: left; vertical-align: top; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+th { font: 700 0.7rem var(--body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); }
+tr:last-child td { border-bottom: 0; }
+td.ok { color: var(--home); font-weight: 700; }
+td.warn { color: var(--lab); font-weight: 700; }
+
+/* contrast */
+.contrast { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 720px) { .contrast { grid-template-columns: minmax(0, 1fr); } }
+.side { padding: 22px; border-radius: 22px; display: flex; flex-direction: column; gap: 10px; }
+.side.gamble { background: var(--surface); border: 2px dashed var(--line); }
+.side.study { background: var(--surface); border: 2px solid var(--home); }
+.side ul { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.side li { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 10px; font-size: 0.95rem; }
+.side li b { font: 700 0.72rem/1.9 var(--mono); color: var(--muted); text-transform: uppercase; }
+.side.gamble h3 { color: var(--bad); } .side.study h3 { color: var(--home); }
+
+/* mind map */
+.map { overflow-x: auto; border-radius: 24px; border: 1px solid var(--line); background: var(--surface); padding: 12px; }
+.map svg { display: block; width: 100%; min-width: 860px; height: auto; }
+.card-bg { fill: var(--surface); stroke-width: 2.5; }
+.c-title { fill: var(--fg); font: 800 17px var(--display); }
+.c-leaf { fill: var(--muted); font: 500 13px var(--body); }
+.c-new { fill: var(--fg); font: 700 13px var(--body); }
+.wire { fill: none; stroke-width: 3; }
+.core { fill: var(--accent-fill); }
+.core-t { fill: var(--on-accent); font: 800 26px var(--display); }
+.core-s { fill: var(--on-accent); font: 600 13px var(--body); }
+.k-home { stroke: var(--home); } .k-study { stroke: var(--study); } .k-practice { stroke: var(--practice); }
+.k-lab { stroke: var(--lab); } .k-reflect { stroke: var(--reflect); } .k-profile { stroke: var(--profile); }
+.d-home { fill: var(--home); } .d-study { fill: var(--study); } .d-practice { fill: var(--practice); }
+.d-lab { fill: var(--lab); } .d-reflect { fill: var(--reflect); } .d-profile { fill: var(--profile); }
+
+/* nav strip */
+.nav-strip { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.nav-pill { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; background: var(--surface); border: 2px solid var(--line); font-weight: 700; }
+.nav-pill i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.arrow-txt { color: var(--muted); font-weight: 700; }
+
+/* buckets */
+.buckets { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
+.bucket { display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); border-top: 6px solid var(--k); }
+.bucket .why { font-size: 0.93rem; color: var(--muted); }
+.bucket ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.bucket li { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 0.93rem; border-top: 1px dashed var(--line); padding-top: 8px; }
+.bucket li span:first-child { min-width: 0; }
+.bucket h3 { color: var(--k); }
+
+/* event lab */
+.flow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 900px) { .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 460px) { .flow { grid-template-columns: minmax(0, 1fr); } }
+.step { display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 16px; background: var(--surface); border: 2px solid var(--line); }
+.step .n { font: 700 0.72rem var(--mono); color: var(--lab); }
+.step p { font-size: 0.86rem; color: var(--muted); }
+.step.key { border-color: var(--lab); }
+.three { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 14px; }
+.panel { padding: 20px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+.panel p { font-size: 0.93rem; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 6px 10px; border-radius: 10px; background: var(--surface-2); font-size: 0.86rem; font-weight: 600; }
+.subj { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; align-items: start; }
+.subj b.letter { grid-row: span 2; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--lab); color: var(--surface); font: 800 1rem var(--display); }
+.subj p { font-size: 0.9rem; }
+.gap-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .gap-grid { grid-template-columns: minmax(0, 1fr); } }
+.gap-chart { padding: 16px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); }
+.gap-chart svg { width: 100%; height: auto; display: block; }
+.g-axis { stroke: var(--line); stroke-width: 1.5; }
+.g-text { fill: var(--muted); font: 600 12px var(--body); }
+.g-label { font: 700 13px var(--body); }
+.g-hold { stroke: var(--home); } .g-plan { stroke: var(--practice); } .g-panic { stroke: var(--bad); }
+.f-hold { fill: var(--home); } .f-plan { fill: var(--practice); } .f-panic { fill: var(--bad); }
+.g-shade { fill: var(--bad); opacity: 0.14; }
+.g-event { fill: var(--lab); opacity: 0.12; }
+.gaps { display: flex; flex-direction: column; gap: 10px; }
+.gapdef { padding: 14px 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+.gapdef p { font-size: 0.9rem; color: var(--muted); }
+.guard { padding: 18px 20px; border-radius: 18px; border: 2px dashed var(--lab); font-size: 0.95rem; }
+.guard b { color: var(--lab); }
+
+/* cycle */
+.cycle { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.cnode { flex: 1 1 160px; padding: 16px; border-radius: 18px; background: var(--surface); border: 2px solid var(--k); display: flex; flex-direction: column; gap: 4px; }
+.cnode b { color: var(--k); font-family: var(--display); font-size: 1.1rem; }
+.cnode span { font-size: 0.88rem; color: var(--muted); }
+
+/* phases */
+.phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.phase { padding: 18px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.phase .when { font: 700 0.75rem var(--mono); color: var(--practice); }
+.phase ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 0.92rem; display: flex; flex-direction: column; gap: 4px; }
+footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 20px; }
+</style>
+
+<div class="wrap">
+
+  <header class="section">
+    <span class="eyebrow">Stonk Up · product structure · planning only, nothing coded</span>
+    <h1>Where everything lives in the app.</h1>
+    <p class="lede">A map of every section, what goes in it, and what exists today versus what's planned. It also covers the new Event Lab idea: replay a festival, a budget day or a global crash against a stock, your strategy or your own portfolio mix, and see the gaps. Learn, study and reflect. No advice.</p>
+    <div class="chips"><span class="tag live">LIVE</span><span class="note">already in the MVP</span> <span class="tag">A</span><span class="tag">B</span><span class="tag">C</span><span class="note">planned phase</span> <span class="tag new">NEW</span><span class="note">idea from this round</span></div>
+  </header>
+
+  <section class="section" id="today">
+    <div class="head">
+      <span class="eyebrow">Your question first</span>
+      <h2>How do today's stock games and paper trading simulate the market, and are we doing the same?</h2>
+      <p>Short answer: they mostly replay the present, with lots of fake money, and score you on returns. Stonk Up has no market simulation yet, so we aren't repeating those patterns. The one partial overlap is that XP today rewards only correct answers.</p>
+    </div>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>Condition</th><th>How most games and paper trading do it</th><th>Why it's a problem</th><th>Are we hitting it?</th><th>Stonk Up's approach</th></tr></thead>
+        <tbody>
+          <tr><td><b>Price data</b></td><td>Live or delayed current prices (broker paper accounts, StockGro). Replay tools use historical bars.</td><td>Current prices rarely include crashes or rare events. In India, live-data games face SEBI restrictions.</td><td class="ok">No: no sim yet</td><td>Synthetic markets plus licensed historical events at least 30 days old</td></tr>
+          <tr><td><b>Starting money</b></td><td>Large fixed virtual balance, often ₹5–10 lakh or $100k+</td><td>Bears no relation to the player's real life and invites oversized bets</td><td class="ok">No</td><td>Pick a realistic amount. Risk-per-trade rules are part of every plan.</td></tr>
+          <tr><td><b>Fills and costs</b></td><td>Simulated fills. Fees, slippage and taxes are often simplified or missing.</td><td>Costs are part of why most F&amp;O traders lose</td><td class="ok">No</td><td>Costs on by default, with a toggle to see their effect</td></tr>
+          <tr><td><b>Time</b></td><td>Real time (wait days for results) or free scrubbing through history</td><td>Feedback is either slow or full of hindsight</td><td class="ok">No</td><td>Time-stepped runs with checkpoints, and blind mode</td></tr>
+          <tr><td><b>Scoring</b></td><td>Return leaderboards and contest rankings</td><td>Rewards luck and leverage, which is gambling logic</td><td class="warn">Partly: XP rewards correct answers only</td><td>Separate process, calibration and outcome scores. Add a confidence slider.</td></tr>
+          <tr><td><b>Rewards</b></td><td>Some apps run paid contests with cash prizes</td><td>Gambling-like, and exposed to SEBI and the Online Gaming Act</td><td class="ok">No</td><td>XP, coins and badges only. Never cash.</td></tr>
+          <tr><td><b>Emotion</b></td><td>No real stakes and no pressure</td><td>People act differently with real money</td><td class="warn">Yes: every sim has this</td><td>Pressure drills, timers, reflection. We don't claim the skills transfer to real trading.</td></tr>
+          <tr><td><b>Context</b></td><td>Prices without the story of what was happening</td><td>Players learn charts, not causes</td><td class="warn">Partly: event questions exist</td><td>Event Lab: briefs, what was knowable, debrief</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section" id="stance">
+    <div class="head">
+      <span class="eyebrow">The line we draw</span>
+      <h2>Trading is strategic study, not gambling.</h2>
+      <p>Every feature should push the player toward the right-hand column.</p>
+    </div>
+    <div class="contrast">
+      <div class="side gamble"><h3>Gambling habits</h3><ul>
+        <li><b>Before</b><span>A hunch, a tip, or a hot streak</span></li>
+        <li><b>Bet size</b><span>Whatever feels exciting</span></li>
+        <li><b>Exit</b><span>None. Hope, or panic.</span></li>
+        <li><b>After a loss</b><span>Chase it</span></li>
+        <li><b>Judged by</b><span>Did I win?</span></li>
+        <li><b>Learning</b><span>Remembers the wins</span></li>
+      </ul></div>
+      <div class="side study"><h3>Strategic study</h3><ul>
+        <li><b>Before</b><span>A written thesis and what would prove it wrong</span></li>
+        <li><b>Bet size</b><span>A rule, such as 1–2% of the account at risk</span></li>
+        <li><b>Exit</b><span>Planned in advance and followed</span></li>
+        <li><b>After a loss</b><span>Debrief: bad beat or bad decision?</span></li>
+        <li><b>Judged by</b><span>Was the process sound, and was my confidence right?</span></li>
+        <li><b>Learning</b><span>A journal, a calibration curve and the gaps</span></li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section class="section" id="map">
+    <div class="head">
+      <span class="eyebrow">Mind map</span>
+      <h2>Five tabs and a profile, each with one job.</h2>
+    </div>
+    <div class="map">
+      <svg viewBox="0 0 1100 600" role="img" aria-label="Mind map. Center: Stonk Up, study the market, don't bet on it. Branches: Home, Study, Practice, Lab, Reflect, and Profile and Safety, each listing its main features.">
+        <path class="wire k-home" d="M550 170 L550 268"></path>
+        <path class="wire k-study" d="M272 135 C 360 135, 350 290, 428 290"></path>
+        <path class="wire k-practice" d="M272 475 C 360 475, 350 322, 428 322"></path>
+        <path class="wire k-lab" d="M828 126 C 740 126, 750 290, 672 290"></path>
+        <path class="wire k-reflect" d="M828 475 C 740 475, 750 322, 672 322"></path>
+        <path class="wire k-profile" d="M550 442 L550 344"></path>
+
+        <rect class="core" x="428" y="268" width="244" height="76" rx="22"></rect>
+        <text class="core-t" x="550" y="302" text-anchor="middle">Stonk Up</text>
+        <text class="core-s" x="550" y="326" text-anchor="middle">study the market, don't bet on it</text>
+
+        <rect class="card-bg k-home" x="435" y="18" width="230" height="152" rx="18"></rect>
+        <circle class="d-home" cx="458" cy="44" r="7"></circle><text class="c-title" x="474" y="50">Home</text>
+        <text class="c-leaf" x="452" y="76">Daily challenge + streak</text>
+        <text class="c-new" x="452" y="98">Event of the day · NEW</text>
+        <text class="c-leaf" x="452" y="120">Continue your last Lab run</text>
+        <text class="c-leaf" x="452" y="142">Level + XP progress</text>
+
+        <rect class="card-bg k-study" x="40" y="60" width="232" height="152" rx="18"></rect>
+        <circle class="d-study" cx="63" cy="86" r="7"></circle><text class="c-title" x="79" y="92">Study</text>
+        <text class="c-leaf" x="57" y="118">10 skill tracks</text>
+        <text class="c-leaf" x="57" y="140">Concept cards + worked examples</text>
+        <text class="c-leaf" x="57" y="162">Think-in-odds module</text>
+        <text class="c-leaf" x="57" y="184">Spot-the-red-flag drills</text>
+
+        <rect class="card-bg k-practice" x="40" y="400" width="232" height="152" rx="18"></rect>
+        <circle class="d-practice" cx="63" cy="426" r="7"></circle><text class="c-title" x="79" y="432">Practice</text>
+        <text class="c-leaf" x="57" y="458">Daily 10 + Unlimited</text>
+        <text class="c-leaf" x="57" y="480">Confidence slider</text>
+        <text class="c-leaf" x="57" y="502">Blind chart calls + why</text>
+        <text class="c-leaf" x="57" y="524">Spaced concept recall</text>
+
+        <rect class="card-bg k-lab" x="828" y="30" width="236" height="176" rx="18"></rect>
+        <circle class="d-lab" cx="851" cy="56" r="7"></circle><text class="c-title" x="867" y="62">Lab</text>
+        <text class="c-leaf" x="845" y="88">Strategy Lab: plan → debrief</text>
+        <text class="c-new" x="845" y="110">Event Lab: time machine · NEW</text>
+        <text class="c-leaf" x="845" y="132">Portfolio Lab: stress tests</text>
+        <text class="c-leaf" x="845" y="154">Risk-of-ruin sandbox</text>
+        <text class="c-leaf" x="845" y="176">Synthetic market presets</text>
+
+        <rect class="card-bg k-reflect" x="828" y="400" width="236" height="152" rx="18"></rect>
+        <circle class="d-reflect" cx="851" cy="426" r="7"></circle><text class="c-title" x="867" y="432">Reflect</text>
+        <text class="c-leaf" x="845" y="458">Decision journal</text>
+        <text class="c-leaf" x="845" y="480">Calibration curve</text>
+        <text class="c-new" x="845" y="502">The Gap tracker · NEW</text>
+        <text class="c-leaf" x="845" y="524">Process-score trend</text>
+
+        <rect class="card-bg k-profile" x="435" y="442" width="230" height="130" rx="18"></rect>
+        <circle class="d-profile" cx="458" cy="468" r="7"></circle><text class="c-title" x="474" y="474">Profile &amp; Safety</text>
+        <text class="c-leaf" x="452" y="500">18+ gate · disclaimers</text>
+        <text class="c-leaf" x="452" y="522">Data licences + chart labels</text>
+        <text class="c-leaf" x="452" y="544">Settings · help</text>
+      </svg>
+    </div>
+    <div class="nav-strip" aria-label="Navigation change">
+      <span class="eyebrow">Navigation today</span>
+      <span class="nav-pill">Play the market</span><span class="nav-pill">Learning path</span><span class="nav-pill">Your stats</span><span class="nav-pill">How to play</span>
+    </div>
+    <div class="nav-strip">
+      <span class="eyebrow">Planned</span>
+      <span class="nav-pill"><i class="d-home" style="background: var(--home);"></i>Home</span>
+      <span class="nav-pill"><i style="background: var(--study);"></i>Study</span>
+      <span class="nav-pill"><i style="background: var(--practice);"></i>Practice</span>
+      <span class="nav-pill"><i style="background: var(--lab);"></i>Lab</span>
+      <span class="nav-pill"><i style="background: var(--reflect);"></i>Reflect</span>
+      <span class="arrow-txt">+ avatar → Profile &amp; Safety</span>
+    </div>
+    <p class="note">Learning path becomes Study. Daily and Unlimited move under Practice. Your stats grows into Reflect. How to play moves into Profile &amp; Safety.</p>
+  </section>
+
+  <section class="section" id="buckets">
+    <div class="head">
+      <span class="eyebrow">Buckets in detail</span>
+      <h2>What goes in each section, and when.</h2>
+    </div>
+    <div class="buckets">
+      <div class="bucket" style="--k: var(--home);"><h3>Home</h3><p class="why">Get in fast and pick up where you left off.</p><ul>
+        <li><span>Daily challenge card + countdown</span><span class="tag live">LIVE</span></li>
+        <li><span>Streak, coins, XP, level</span><span class="tag live">LIVE</span></li>
+        <li><span>Daily side quests</span><span class="tag live">LIVE</span></li>
+        <li><span>Event of the day: "On this date…" opens the Event Lab</span><span class="tag new">NEW</span></li>
+        <li><span>Continue your last Lab run</span><span class="tag">B</span></li>
+      </ul></div>
+      <div class="bucket" style="--k: var(--study);"><h3>Study</h3><p class="why">Learn a concept before you're tested on it.</p><ul>
+        <li><span>8-level learning path (becomes the track map)</span><span class="tag live">LIVE</span></li>
+        <li><span>Concepts discovered in reveals</span><span class="tag live">LIVE</span></li>
+        <li><span>10 skill tracks: concept card → worked example → quiz</span><span class="tag">A</span></li>
+        <li><span>Think in odds (calibration module)</span><span class="tag">A</span></li>
+        <li><span>Spot the red flag (finfluencer and scam posts)</span><span class="tag">B</span></li>
+        <li><span>Concept library and glossary</span><span class="tag">B</span></li>
+      </ul></div>
+      <div class="bucket" style="--k: var(--practice);"><h3>Practice</h3><p class="why">Quick reps that keep the habit going.</p><ul>
+        <li><span>Daily 10 challenge</span><span class="tag live">LIVE</span></li>
+        <li><span>Unlimited, by difficulty</span><span class="tag live">LIVE</span></li>
+        <li><span>Confidence slider on every prediction</span><span class="tag">A</span></li>
+        <li><span>Spaced recall of past concepts</span><span class="tag">A</span></li>
+        <li><span>Blind chart call + "why?" explanation</span><span class="tag">B</span></li>
+      </ul></div>
+      <div class="bucket" style="--k: var(--lab);"><h3>Lab</h3><p class="why">Deep practice: plan, run, debrief.</p><ul>
+        <li><span>Risk-of-ruin sandbox</span><span class="tag">A</span></li>
+        <li><span>Synthetic market presets (calm, choppy, crash)</span><span class="tag">A</span></li>
+        <li><span>Strategy Lab runs with plan card and debrief</span><span class="tag">B</span></li>
+        <li><span>Strategy notebook: save your own rules</span><span class="tag">B</span></li>
+        <li><span>Event Lab: time-machine replays</span><span class="tag new">NEW · B</span></li>
+        <li><span>Portfolio Lab: stress-test your mix</span><span class="tag new">NEW · C</span></li>
+      </ul></div>
+      <div class="bucket" style="--k: var(--reflect);"><h3>Reflect</h3><p class="why">Turn results into lessons.</p><ul>
+        <li><span>Stats, accuracy, history</span><span class="tag live">LIVE</span></li>
+        <li><span>Calibration curve</span><span class="tag">A</span></li>
+        <li><span>Decision journal (auto-filled from debriefs)</span><span class="tag">B</span></li>
+        <li><span>The Gap tracker across all runs</span><span class="tag new">NEW · B</span></li>
+        <li><span>Process-score trend + bias tags</span><span class="tag">B</span></li>
+        <li><span>Weekly reflection prompt</span><span class="tag">B</span></li>
+      </ul></div>
+      <div class="bucket" style="--k: var(--profile);"><h3>Profile &amp; Safety</h3><p class="why">Trust, rules and settings.</p><ul>
+        <li><span>Account, guest play, logout</span><span class="tag live">LIVE</span></li>
+        <li><span>Disclaimer and art credits</span><span class="tag live">LIVE</span></li>
+        <li><span>18+ age gate</span><span class="tag">A</span></li>
+        <li><span>Data licence credits on every chart</span><span class="tag">B</span></li>
+        <li><span>Community: cohorts ranked by process, not P&amp;L</span><span class="tag">C</span></li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section class="section" id="event-lab">
+    <div class="head">
+      <span class="eyebrow">New · Event Lab</span>
+      <h2>Live through a real event, then measure the gaps.</h2>
+      <p>Pick a moment in market history and decide what to test against it. The Lab shows what happened and how your choices compare. It never says what to buy.</p>
+    </div>
+    <div class="flow">
+      <div class="step"><span class="n">1</span><h3>Pick an event</h3><p>A festival, a budget day or a global shock</p></div>
+      <div class="step"><span class="n">2</span><h3>Pick a subject</h3><p>A stock or index, your strategy, or your portfolio mix</p></div>
+      <div class="step"><span class="n">3</span><h3>Read the brief</h3><p>Only what was known then. Optional blind mode.</p></div>
+      <div class="step"><span class="n">4</span><h3>Commit</h3><p>Plan, rules and confidence %, locked in</p></div>
+      <div class="step key"><span class="n">5</span><h3>Live through it</h3><p>Day by day, with checkpoints and news</p></div>
+      <div class="step key"><span class="n">6</span><h3>See the gaps</h3><p>Plan, behaviour, benchmark and confidence</p></div>
+      <div class="step"><span class="n">7</span><h3>Reflect</h3><p>Journal entry: what you'd change next time</p></div>
+    </div>
+
+    <div class="three">
+      <div class="panel"><h3>Indian calendar</h3><div class="chips"><span class="chip">Diwali Muhurat trading</span><span class="chip">Union Budget day</span><span class="chip">Election results</span><span class="chip">RBI policy days</span><span class="chip">Earnings season</span><span class="chip">Monsoon season</span></div><p>Calendar effects are a question to test, not a rule. Where data allows, show many years side by side so one memorable year doesn't become a myth.</p></div>
+      <div class="panel"><h3>Global shocks</h3><div class="chips"><span class="chip">2000 dot-com bust</span><span class="chip">2008 Lehman collapse</span><span class="chip">2016 Brexit vote</span><span class="chip">2020 COVID crash + rebound</span><span class="chip">2022 rate hikes</span></div><p>Show what was knowable before, what wasn't, and how long recovery took.</p></div>
+      <div class="panel"><h3>Crowd moments</h3><div class="chips"><span class="chip">Meme-stock mania</span><span class="chip">IPO frenzies</span><span class="chip">Crypto boom and bust</span></div><p>Built for FOMO and herding drills. The hype feed is part of the scenario.</p></div>
+    </div>
+
+    <div class="three">
+      <div class="panel"><div class="subj"><b class="letter">A</b><h3>A stock, index or sector</h3><p>"How did this behave through the event, and what did I expect?"</p></div></div>
+      <div class="panel"><div class="subj"><b class="letter">B</b><h3>Your strategy</h3><p>"Would my saved rules have held up, and would I have followed them?"</p></div></div>
+      <div class="panel"><div class="subj"><b class="letter">C</b><h3>Your portfolio mix</h3><p>Enter allocation percentages only (no amounts, no broker linking), or use your practice portfolio. "What would this mix have done, and how would I have felt?"</p></div></div>
+    </div>
+
+    <div class="gap-grid">
+      <div class="gap-chart">
+        <svg viewBox="0 0 560 300" role="img" aria-label="Illustrative chart of three paths through an event. Buy and hold dips and recovers. Your plan dips less and recovers. The panic reflex sells at the bottom and stays flat, so the shaded area between buy and hold and panic is the behaviour gap.">
+          <rect class="g-event" x="170" y="20" width="120" height="230"></rect>
+          <text class="g-text" x="230" y="38" text-anchor="middle">event</text>
+          <line class="g-axis" x1="40" y1="250" x2="540" y2="250"></line>
+          <line class="g-axis" x1="40" y1="20" x2="40" y2="250"></line>
+          <text class="g-text" x="40" y="272">before</text>
+          <text class="g-text" x="230" y="272" text-anchor="middle">during</text>
+          <text class="g-text" x="540" y="272" text-anchor="end">recovery</text>
+          <path class="g-shade" d="M240 200 L300 165 L360 140 L420 115 L480 95 L530 80 L530 200 L240 200 Z"></path>
+          <polyline class="g-hold" fill="none" stroke-width="3.5" points="40,110 100,100 170,105 210,170 240,200 300,165 360,140 420,115 480,95 530,80"></polyline>
+          <polyline class="g-plan" fill="none" stroke-width="3.5" stroke-dasharray="8 5" points="40,110 100,100 170,105 200,145 260,150 320,130 380,112 440,98 530,86"></polyline>
+          <polyline class="g-panic" fill="none" stroke-width="3.5" points="40,110 100,100 170,105 210,170 240,200 300,200 380,200 450,200 530,200"></polyline>
+          <text class="g-label f-hold" x="534" y="72" text-anchor="end">Buy &amp; hold</text>
+          <text class="g-label f-plan" x="440" y="88" text-anchor="end">Your plan</text>
+          <text class="g-label f-panic" x="534" y="218" text-anchor="end">Panic reflex</text>
+          <text class="g-text" x="420" y="168" text-anchor="middle">behaviour gap</text>
+        </svg>
+        <p class="note">Illustrative shapes, not real data.</p>
+      </div>
+      <div class="gaps">
+        <div class="gapdef"><h3>Plan gap</h3><p>What you planned versus what you did. Measures discipline.</p></div>
+        <div class="gapdef"><h3>Behaviour gap</h3><p>Your decisions versus simply holding through it. The same idea as Morningstar's investor-return gap.</p></div>
+        <div class="gapdef"><h3>Benchmark gap</h3><p>Your mix or strategy versus a plain index over the same window.</p></div>
+        <div class="gapdef"><h3>Confidence gap</h3><p>How sure you were versus how often you're right. This is your calibration.</p></div>
+      </div>
+    </div>
+    <p class="guard"><b>Guardrail:</b> the Event Lab reports what happened and asks reflection questions. It never says "you should buy, sell or rebalance". Historical prices need a data licence and must be at least 30 days old. Until a licence is in place, use synthetic, event-shaped scenarios labelled as models.</p>
+  </section>
+
+  <section class="section" id="loop">
+    <div class="head">
+      <span class="eyebrow">How the sections connect</span>
+      <h2>Study, practice, test, reflect, repeat.</h2>
+    </div>
+    <div class="cycle">
+      <div class="cnode" style="--k: var(--study);"><b>Study</b><span>Learn the idea</span></div><span class="arrow-txt">→</span>
+      <div class="cnode" style="--k: var(--practice);"><b>Practice</b><span>Quick reps with confidence</span></div><span class="arrow-txt">→</span>
+      <div class="cnode" style="--k: var(--lab);"><b>Lab</b><span>Plan and live through it</span></div><span class="arrow-txt">→</span>
+      <div class="cnode" style="--k: var(--reflect);"><b>Reflect</b><span>See the gaps and write it down</span></div><span class="arrow-txt">↺</span>
+    </div>
+    <p class="note">Reflect feeds back into Study: your weakest skill tag picks the next lesson.</p>
+  </section>
+
+  <section class="section" id="order">
+    <div class="head">
+      <span class="eyebrow">Build order</span>
+      <h2>What ships in each phase.</h2>
+    </div>
+    <div class="phases">
+      <div class="phase"><span class="when">PHASE A · FOUNDATIONS</span><h3>Study + calibration</h3><ul><li>New 5-tab navigation</li><li>Skill tracks and the Think-in-odds module</li><li>Confidence slider and calibration curve</li><li>Risk-of-ruin sandbox and synthetic presets</li><li>18+ age gate</li></ul></div>
+      <div class="phase"><span class="when">PHASE B · LABS</span><h3>Strategy + Event Lab</h3><ul><li>Plan card, time-stepped runs, debriefs</li><li>Event Lab with synthetic event scenarios first, licensed replays later</li><li>Gap tracker and decision journal</li><li>Event of the day on Home</li></ul></div>
+      <div class="phase"><span class="when">PHASE C · DEPTH</span><h3>Portfolio + community</h3><ul><li>Portfolio Lab: test your mix against events</li><li>Behaviour drills (FOMO, losing streaks)</li><li>Cohorts ranked by process score</li><li>Grounded AI coach for debriefs</li></ul></div>
+    </div>
+  </section>
+
+  <footer>Stonk Up is for educational and entertainment purposes only and does not provide financial advice or investment recommendations. Research behind this map: docs/research in the repo.</footer>
+</div>
+
+</html>
