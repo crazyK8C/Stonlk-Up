@@ -15,7 +15,11 @@ Without `DATABASE_URL`, progress is saved by the server to `.local/demo.json`. T
 3. Run `pnpm db:migrate` to apply the initial idempotent schema and seed curriculum/content.
 4. Restart the API. Production refuses to start without PostgreSQL. Set `APP_ORIGIN` to the exact browser origin and deploy behind HTTPS so secure cookies work.
 
-This environment has no PostgreSQL or Docker binary. The database implementation and migrations are supplied, but PostgreSQL execution needs a database connection.
+PostgreSQL mode has been checked against a local PostgreSQL 18 server: the migration runs twice cleanly, `pnpm test:api` passes, and stored XP and coins match the ledger.
+
+### Deploy
+
+See [docs/DEPLOY.md](docs/DEPLOY.md) for hosting on Render with a Neon database. `pnpm start` runs the server; set `NODE_ENV=production` for hosted use.
 
 ## Product decisions
 

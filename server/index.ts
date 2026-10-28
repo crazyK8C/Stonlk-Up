@@ -28,8 +28,14 @@ import {
 import { reaction } from './reactions.js';
 import { levels, type Mode, type Reveal, type ReactionType } from '../shared/types.js';
 const scrypt = promisify(rawScrypt);
+const production = process.env.NODE_ENV === 'production';
+// Hosts like Render set RENDER_EXTERNAL_URL; APP_ORIGIN overrides it for custom domains.
+const appOrigin =
+  process.env.APP_ORIGIN || process.env.RENDER_EXTERNAL_URL || 'http://127.0.0.1:5173';
 const app = express();
-if (process.env.NODE_ENV === 'production' && !pool)
+// Behind a hosting proxy, trust one hop so rate limits see real client IPs.
+if (production) app.set('trust proxy', 1);
+if (production && !pool)
   throw new Error('PostgreSQL DATABASE_URL is required in production');
 if (pool) {
   const stored = await pool.query('SELECT content FROM questions WHERE published=TRUE ORDER BY id');
@@ -63,8 +69,7 @@ app.use(
 app.use('/api', (req, res, next) => {
   if (req.method === 'POST') {
     const origin = req.get('origin');
-    const allowed = process.env.APP_ORIGIN ?? 'http://127.0.0.1:5173';
-    if (origin && origin !== allowed)
+    if (origin && origin !== appOrigin)
       return res.status(403).json({ error: 'Request origin is not allowed' });
   }
   next();
@@ -93,7 +98,7 @@ async function session(res: express.Response, id: string) {
   res.cookie('stonk_session', t, {
     httpOnly: true,
     sameSite: 'strict',
-    secure: process.env.NODE_ENV === 'production',
+    secure: production,
     maxAge: 7 * 86400000,
     path: '/',
   });
@@ -343,8 +348,11 @@ app.use(
       .json({ error: error.status ? error.message : 'Something went wrong. Please try again.' });
   },
 );
-app.listen(Number(process.env.PORT ?? 3001), '127.0.0.1', () =>
+// Containers must listen on all interfaces; local development stays on loopback.
+const host = process.env.HOST || (production ? '0.0.0.0' : '127.0.0.1');
+const port = Number(process.env.PORT ?? 3001);
+app.listen(port, host, () =>
   console.log(
-    `Stonk Up API running at http://127.0.0.1:${process.env.PORT ?? 3001} (${pool ? 'PostgreSQL' : 'local demo storage'})`,
+    `Stonk Up API running at http://${host}:${port} (${pool ? 'PostgreSQL' : 'local demo storage'})`,
   ),
 );

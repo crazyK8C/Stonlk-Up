@@ -1,0 +1,18 @@
+# Render Blueprint: one web service that serves the API and the built frontend.
+# PostgreSQL lives outside Render (Neon free tier); paste its URL when prompted.
+services:
+  - type: web
+    name: stonk-up
+    runtime: node
+    plan: free
+    branch: main
+    # Dev dependencies (Vite, TypeScript) are needed to build, so NODE_ENV is
+    # set only for the running server, not during the build.
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build && pnpm db:migrate
+    startCommand: NODE_ENV=production pnpm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: DATABASE_URL
+        sync: false
