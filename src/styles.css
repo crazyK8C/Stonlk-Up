@@ -2961,3 +2961,301 @@ select {
   line-height: 1.6;
   color: #79896b;
 }
+.market-lab {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.market-lab .section-heading {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.market-lab .market-intro {
+  max-width: 70ch;
+}
+.market-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.market-line {
+  fill: none;
+  stroke: var(--lime);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+}
+.market-bear {
+  fill: #f08a7a;
+  opacity: 0.14;
+}
+.market-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.market-controls .sandbox-seg {
+  margin-top: 0;
+}
+.sandbox-seg button {
+  padding: 0 12px;
+}
+.sandbox-seg button.wrong {
+  background: #3d2b26;
+  border-color: #f08a7a;
+  color: #f4c2b8;
+}
+.sandbox-seg button:disabled:not(.selected):not(.wrong) {
+  opacity: 0.55;
+}
+.market-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+@media (max-width: 650px) {
+  .market-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.market-lab .sandbox-verdict {
+  font-size: 12px;
+  color: #d3eac0;
+}
+.market-lab .sandbox-note {
+  display: flex;
+  gap: 7px;
+  font-size: 9px;
+  line-height: 1.6;
+  color: #79896b;
+}
+.lab-drill-title {
+  margin: 4px 0 12px;
+  font-family: Manrope, sans-serif;
+  font-size: 15px;
+  color: #e9eae4;
+}
+/* Study tracks */
+.track-progress {
+  display: grid;
+  grid-template-columns: auto auto minmax(120px, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  font-size: 11px;
+  color: #94a77b;
+}
+.track-progress strong {
+  font-family: Manrope, sans-serif;
+  font-size: 18px;
+  color: #e9eae4;
+}
+.track-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  gap: 14px;
+}
+.track-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-height: 190px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  text-align: left;
+}
+.track-card:hover:not(:disabled) {
+  border-color: #4d6139;
+}
+.track-card.done {
+  border-color: #4d6139;
+}
+.track-card.done .track-card-top svg {
+  color: var(--lime);
+}
+.track-card strong {
+  font-family: Manrope, sans-serif;
+  font-size: 16px;
+  color: #e9eae4;
+}
+.track-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.track-summary {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #9eaf8b;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.track-cta {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--lime);
+}
+.track-tag {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #26361c;
+  color: #c6d9b0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+.study-levels-heading {
+  margin-top: 34px;
+}
+.lesson {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.lesson .text-link {
+  align-self: flex-start;
+}
+.lesson-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.lesson h2 {
+  margin: 0;
+  font-family: Manrope, sans-serif;
+  font-size: clamp(24px, 3vw, 34px);
+  letter-spacing: -0.8px;
+}
+.lesson-summary {
+  max-width: 70ch;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #c6d0bb;
+}
+.lesson-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 14px;
+}
+.lesson h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lesson-ideas,
+.lesson-steps {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #c6d0bb;
+}
+.content-panel .lesson-result,
+.content-panel .lesson-why {
+  color: #d3eac0;
+}
+.lesson-check .answer-options {
+  margin-top: 12px;
+}
+.lesson-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+.lesson-actions .guest-btn {
+  width: auto;
+  padding: 11px 18px;
+}
+/* Practice hub */
+.practice-daily {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 26px;
+}
+.practice-daily > div {
+  flex: 1 1 280px;
+}
+.practice-daily h3 {
+  margin: 8px 0 4px;
+}
+.practice-daily .progress-track {
+  margin-top: 10px;
+}
+.practice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  gap: 12px;
+  margin-bottom: 26px;
+}
+.practice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  text-align: left;
+}
+.practice-card:hover:not(:disabled) {
+  border-color: #4d6139;
+}
+.practice-card strong {
+  font-family: Manrope, sans-serif;
+  font-size: 16px;
+  color: #e9eae4;
+}
+.practice-card span {
+  font-size: 11px;
+  color: #94a77b;
+}
+.practice-card .practice-level {
+  color: var(--lime);
+  letter-spacing: 3px;
+  font-size: 9px;
+}
+.category-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #34412b;
+  border-radius: 999px;
+  background: #171d14;
+  color: #c6d9b0;
+  font-size: 11px;
+  font-weight: 600;
+}
+.category-chip:hover:not(:disabled) {
+  border-color: var(--lime);
+}
+@media (max-width: 650px) {
+  .mobile-bottom-nav button span {
+    font-size: 9px;
+  }
+}

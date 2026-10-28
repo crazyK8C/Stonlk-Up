@@ -26,6 +26,7 @@ import {
   type User,
 } from './store.js';
 import { reaction } from './reactions.js';
+import { generateMarket } from './market.js';
 import { levels, type Mode, type Reveal, type ReactionType } from '../shared/types.js';
 const scrypt = promisify(rawScrypt);
 const production = process.env.NODE_ENV === 'production';
@@ -185,7 +186,8 @@ app.post('/api/auth/:action', authLimit, async (req, res) => {
   res.json(profile(safeUser(user)));
 });
 app.use('/api', async (req, res, next) => {
-  if (req.path === '/levels' || req.path.startsWith('/reactions/')) return next();
+  if (req.path === '/levels' || req.path.startsWith('/reactions/') || req.path.startsWith('/lab/'))
+    return next();
   const user = await current(req);
   if (!user) return res.status(401).json({ error: 'Sign in to save your progress.' });
   res.locals.user = user;
@@ -223,9 +225,13 @@ app.get('/api/questions/daily', async (_req, res) => {
   });
 });
 app.get('/api/questions/unlimited', (req, res) => {
-  const difficulty = req.query.difficulty;
-  const filtered = questions.filter((q) => !difficulty || q.difficulty === difficulty);
-  if (!filtered.length) return res.status(400).json({ error: 'Unknown difficulty' });
+  const { difficulty, category } = req.query;
+  const filtered = questions.filter(
+    (q) =>
+      (!difficulty || q.difficulty === difficulty) && (!category || q.category === category),
+  );
+  if (!filtered.length)
+    return res.status(400).json({ error: 'No practice questions match that filter yet.' });
   const q = filtered[Math.floor(Math.random() * filtered.length)];
   res.json({ question: publicQuestion(q), ticket: issue(res.locals.user, q.id, 'unlimited') });
 });
@@ -309,6 +315,16 @@ app.post('/api/questions/:id/answer', async (req, res) => {
   });
   tickets.delete(data.ticket);
   res.json(result);
+});
+// Public: synthetic practice markets (models, never real prices).
+app.get('/api/lab/market', (req, res) => {
+  const { preset, seed } = z
+    .object({
+      preset: z.enum(['calm', 'choppy', 'crash']),
+      seed: z.coerce.number().int().min(1).max(2147483647),
+    })
+    .parse(req.query);
+  res.json(generateMarket(preset, seed));
 });
 app.get('/api/levels', (_req, res) =>
   res.json(levels.map((name, i) => ({ id: i + 1, name, xpRequired: i * 1000 }))),

@@ -142,6 +142,19 @@ assert.equal(ratedAnswer.status, 200);
 assert.equal(ratedAnswer.data.profile.attempts.at(-1).confidence, 70);
 assert.equal(ratedAnswer.data.profile.calibration.count, 1);
 assert.equal(ratedAnswer.data.profile.calibration.buckets[0].stated, 70);
+const byTopic = await request('/questions/unlimited?category=Risk', undefined, cookie);
+assert.equal(byTopic.status, 200);
+assert.equal(byTopic.data.question.category, 'Risk');
+assert.equal(
+  (await request('/questions/unlimited?category=Astrology', undefined, cookie)).status,
+  400,
+);
+const market = await request('/lab/market?preset=crash&seed=7');
+assert.equal(market.status, 200);
+assert.equal(market.data.prices.length, 251);
+assert.deepEqual(market.data, (await request('/lab/market?preset=crash&seed=7')).data);
+assert.equal((await request('/lab/market?preset=moon&seed=7')).status, 400);
+assert.equal((await request('/lab/market?preset=calm&seed=0')).status, 400);
 await request('/auth/logout', {}, cookie);
 assert.equal((await request('/user/profile', undefined, cookie)).status, 401);
 assert.equal((await request('/auth/login', { email, password: 'wrong-password-42' })).status, 401);
@@ -150,5 +163,5 @@ assert.equal(login.status, 200);
 assert.equal((await request('/user/profile', undefined, login.cookie)).data.streak, 1);
 await request('/auth/logout', {}, login.cookie);
 console.log(
-  'API integration checks passed: auth, isolation, secrecy, validation, concurrent duplicates, practice rewards, daily completion, streaks, calibration and persistence.',
+  'API integration checks passed: auth, isolation, secrecy, validation, concurrent duplicates, practice rewards, daily completion, streaks, calibration, topic practice, synthetic markets and persistence.',
 );

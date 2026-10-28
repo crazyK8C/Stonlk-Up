@@ -28,6 +28,7 @@ import {
   Cat,
   CheckCircle2,
   FlaskConical,
+  House,
 } from 'lucide-react';
 import type {
   Profile,
@@ -43,7 +44,9 @@ import './styles.css';
 import { api } from './lib/api';
 import { Mascot, MiniChart } from './components/GameArt';
 import { RiskSandbox } from './components/RiskSandbox';
-type View = 'play' | 'path' | 'lab' | 'stats' | 'guide';
+import { MarketLab } from './components/MarketLab';
+import { StudyTracks } from './components/StudyTracks';
+type View = 'play' | 'study' | 'practice' | 'lab' | 'stats' | 'guide';
 type Daily = {
   day: string;
   resetAt: string;
@@ -62,6 +65,7 @@ function App() {
     [error, setError] = useState(''),
     [mode, setMode] = useState<Mode | null>(null),
     [difficulty, setDifficulty] = useState<Difficulty>('Beginner'),
+    [category, setCategory] = useState<string | null>(null),
     [daily, setDaily] = useState<Daily | null>(null),
     [question, setQuestion] = useState<Question | null>(null),
     [ticket, setTicket] = useState(''),
@@ -139,7 +143,15 @@ function App() {
       prior?.focus();
     };
   }, [auth]);
-  async function loadRound(nextMode: Mode, user = player) {
+  async function loadRound(
+    nextMode: Mode,
+    user = player,
+    filter?: { difficulty?: Difficulty; category?: string | null },
+  ) {
+    const roundDifficulty = filter?.difficulty ?? difficulty;
+    const roundCategory = filter && 'category' in filter ? filter.category : category;
+    if (filter?.difficulty) setDifficulty(filter.difficulty);
+    if (filter && 'category' in filter) setCategory(filter.category ?? null);
     if (!user) {
       setPending(nextMode);
       setAuth(true);
@@ -168,7 +180,10 @@ function App() {
         }
       } else {
         const r = await api<{ question: Question; ticket: string }>(
-          '/questions/unlimited?difficulty=' + difficulty,
+          '/questions/unlimited?' +
+            (roundCategory
+              ? 'category=' + encodeURIComponent(roundCategory)
+              : 'difficulty=' + roundDifficulty),
         );
         setQuestion(r.question);
         setTicket(r.ticket);
@@ -260,10 +275,29 @@ function App() {
     .map((v) => String(v).padStart(2, '0'))
     .join(':');
   const nav = [
-    { id: 'play' as View, label: 'Play the market', icon: TrendingUp },
-    { id: 'path' as View, label: 'Learning path', icon: BookOpen },
-    { id: 'lab' as View, label: 'Strategy Lab', icon: FlaskConical },
-    { id: 'stats' as View, label: 'Your stats', icon: BarChart3 },
+    { id: 'play' as View, label: 'Home', short: 'Home', icon: House },
+    { id: 'study' as View, label: 'Study', short: 'Study', icon: BookOpen },
+    { id: 'practice' as View, label: 'Practice', short: 'Practice', icon: Target },
+    { id: 'lab' as View, label: 'Strategy Lab', short: 'Lab', icon: FlaskConical },
+    { id: 'stats' as View, label: 'Reflect', short: 'Reflect', icon: BarChart3 },
+  ];
+  const viewTitle: Record<View, string> = {
+    play: 'Home',
+    study: 'Study',
+    practice: 'Practice',
+    lab: 'Strategy Lab',
+    stats: 'Reflect',
+    guide: 'How it works',
+  };
+  const categories = [
+    'Market basics',
+    'Fundamentals',
+    'Mathematics',
+    'Probability',
+    'Risk',
+    'Macroeconomics',
+    'Portfolio',
+    'Psychology',
   ];
   return (
     <div className="app-shell">
@@ -361,15 +395,7 @@ function App() {
                   ? mode === 'daily'
                     ? 'Daily challenge'
                     : 'Unlimited practice'
-                  : view === 'play'
-                    ? 'Play the market'
-                    : view === 'path'
-                      ? 'Learning path'
-                      : view === 'lab'
-                        ? 'Strategy Lab'
-                        : view === 'stats'
-                          ? 'Your stats'
-                          : 'How to play'}
+                  : viewTitle[view]}
               </strong>
             </span>
           </div>
@@ -509,7 +535,7 @@ function App() {
                     <Lock size={13} />
                     {level === 8 ? 'You reached the summit' : `Next up: ${levels[level]}`}
                   </div>
-                  <button className="text-link" onClick={() => navigate('path')}>
+                  <button className="text-link" onClick={() => navigate('study')}>
                     Explore your learning path
                     <ArrowRight size={15} />
                   </button>
@@ -546,7 +572,7 @@ function App() {
                   </div>
                   <div className="decorative-loop">∞</div>
                 </button>
-                <button className="mode-card path-card" onClick={() => navigate('path')}>
+                <button className="mode-card path-card" onClick={() => navigate('study')}>
                   <div className="mode-top">
                     <span className="mode-icon green">
                       <BookOpen size={23} />
@@ -690,7 +716,20 @@ function App() {
                   <span className="green-dot" />
                   {mode === 'daily' ? 'DAILY CHALLENGE' : 'UNLIMITED PRACTICE'}
                 </span>
-                {mode === 'unlimited' && (
+                {mode === 'unlimited' && category && (
+                  <button
+                    className="category-chip"
+                    aria-label={`Practising ${category} questions. Clear the category filter.`}
+                    onClick={() => {
+                      setCategory(null);
+                      setQuestion(null);
+                      setReveal(null);
+                    }}
+                  >
+                    {category} <X size={13} />
+                  </button>
+                )}
+                {mode === 'unlimited' && !category && (
                   <select
                     aria-label="Difficulty"
                     value={difficulty}
@@ -989,22 +1028,113 @@ function App() {
               )}
             </div>
           )}
-          {!mode && view === 'path' && (
+          {!mode && view === 'practice' && (
             <>
               <div className="page-heading">
                 <div>
-                  <div className="eyebrow">THE CHARACTER DEVELOPMENT YOU ACTUALLY WANT</div>
+                  <div className="eyebrow">REPS MAKE IT A HABIT</div>
                   <h1>
-                    From market baby
+                    Quick reps.
                     <br />
-                    <span>to big brain energy.</span>
+                    <span>Honest confidence.</span>
                   </h1>
-                  <p>Eight levels. One much smarter relationship with uncertainty.</p>
+                  <p>
+                    Predict, say how sure you are, then see why. Every answer sharpens your
+                    calibration in Reflect.
+                  </p>
+                </div>
+              </div>
+              <section className="practice-daily content-panel">
+                <div>
+                  <div className="card-overline">DAILY CHALLENGE</div>
+                  <h3>10 events. One shot each.</h3>
+                  <p>
+                    {today.length}/10 done today · new set in <strong>{countdown}</strong>
+                  </p>
+                  <div className="progress-track">
+                    <span style={{ width: `${today.length * 10}%` }} />
+                  </div>
+                </div>
+                <button
+                  className="primary-btn"
+                  disabled={boot || busy}
+                  onClick={() => loadRound('daily')}
+                >
+                  {today.length === 10 ? 'See results' : today.length ? 'Continue' : 'Start'}
+                  <ArrowRight size={18} />
+                </button>
+              </section>
+              <div className="section-heading">
+                <h3>
+                  Unlimited practice<span>REDUCED XP, ONCE PER QUESTION</span>
+                </h3>
+              </div>
+              <div className="practice-grid">
+                {(['Beginner', 'Intermediate', 'Advanced', 'Quant'] as Difficulty[]).map((d, i) => (
+                  <button
+                    key={d}
+                    className="practice-card"
+                    onClick={() =>
+                      loadRound('unlimited', player, { difficulty: d, category: null })
+                    }
+                  >
+                    <span className="practice-level">{'●'.repeat(i + 1)}</span>
+                    <strong>{d}</strong>
+                    <span>
+                      {
+                        [
+                          'First principles',
+                          'Fundamentals + news',
+                          'Risk + probability',
+                          'Math-heavy',
+                        ][i]
+                      }
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="section-heading">
+                <h3>
+                  Practice by topic<span>PAIRS WITH THE STUDY TRACKS</span>
+                </h3>
+              </div>
+              <div className="category-row">
+                {categories.map((c) => (
+                  <button
+                    key={c}
+                    className="category-chip"
+                    onClick={() => loadRound('unlimited', player, { category: c })}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          {!mode && view === 'study' && (
+            <>
+              <div className="page-heading">
+                <div>
+                  <div className="eyebrow">LEARN IT BEFORE YOU'RE TESTED ON IT</div>
+                  <h1>
+                    Ten skills that matter
+                    <br />
+                    <span>more than stock tips.</span>
+                  </h1>
+                  <p>
+                    Short lessons with a worked example and a quick check. Then practise the topic.
+                  </p>
                 </div>
                 <span className="path-total">
                   {xp.toLocaleString()}
                   <small>TOTAL XP EARNED</small>
                 </span>
+              </div>
+              <StudyTracks onPractice={(c) => loadRound('unlimited', player, { category: c })} />
+              <div className="section-heading study-levels-heading">
+                <h3>
+                  Your level path<span>FROM MARKET BABY TO QUANT OVERLORD</span>
+                </h3>
               </div>
               <div className="learning-grid">
                 {levels.map((l, i) => (
@@ -1310,19 +1440,23 @@ function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <div className="eyebrow">STRATEGY LAB · DRILL 1 OF MANY</div>
+                  <div className="eyebrow">STRATEGY LAB · PRACTICE WITHOUT THE PAIN</div>
                   <h1>
-                    Same winning strategy.
+                    Test the decision.
                     <br />
-                    <span>Only the bet size changes.</span>
+                    <span>Not your savings.</span>
                   </h1>
                   <p>
-                    100 simulated traders, 100 trades each, all with a real edge. Change how much
-                    they risk per trade and watch what happens.
+                    Drills that show how sizing, luck and market regimes shape results. Every market
+                    here is a labelled model.
                   </p>
                 </div>
               </div>
+              <h2 className="lab-drill-title">
+                Drill 1 · Same winning strategy, only the bet size changes
+              </h2>
               <RiskSandbox />
+              <MarketLab />
               <p className="muted path-note">
                 This is a model for learning, not a forecast. Real markets add fees, slippage, gaps
                 and emotions.
@@ -1430,20 +1564,15 @@ function App() {
         </main>
       </div>
       <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
-        {[
-          { id: 'play' as View, label: 'Play', icon: TrendingUp },
-          { id: 'path' as View, label: 'Learn', icon: BookOpen },
-          { id: 'lab' as View, label: 'Lab', icon: FlaskConical },
-          { id: 'stats' as View, label: 'Stats', icon: BarChart3 },
-          { id: 'guide' as View, label: 'Guide', icon: CircleHelp },
-        ].map((item) => (
+        {nav.map((item) => (
           <button
             key={item.id}
-            className={view === item.id ? 'active' : ''}
+            className={view === item.id && !mode ? 'active' : ''}
+            aria-current={view === item.id && !mode ? 'page' : undefined}
             onClick={() => navigate(item.id)}
           >
             <item.icon size={19} />
-            <span>{item.label}</span>
+            <span>{item.short}</span>
           </button>
         ))}
       </nav>

@@ -52,6 +52,17 @@ export interface Calibration {
   brier: number | null;
   buckets: { stated: number; hitRate: number; n: number }[];
 }
+export type MarketPreset = 'calm' | 'choppy' | 'crash';
+export type MarketRegime = 'bull' | 'sideways' | 'bear';
+export interface MarketPath {
+  preset: MarketPreset;
+  label: string;
+  seed: number;
+  prices: number[];
+  regimes: MarketRegime[];
+  /** Percentages, one decimal place. */
+  stats: { totalReturn: number; maxDrawdown: number; annualVolatility: number; worstDay: number };
+}
 export const confidenceLevels = [
   { value: 30, label: 'Guessing' },
   { value: 50, label: 'Coin flip' },
