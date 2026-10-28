@@ -107,6 +107,21 @@ async function session(res: express.Response, id: string) {
     path: '/',
   });
 }
+// TEMPORARY: measure the proxy chain in front of the app. Remove after reading the log.
+app.use('/api/health', (req, _res, next) => {
+  if (req.get('x-stonk-proxy-check') === 'chain-2026-10-29')
+    console.log(
+      'proxy-check',
+      JSON.stringify({
+        xff: req.get('x-forwarded-for'),
+        socket: req.socket.remoteAddress,
+        ip: req.ip,
+        trueClientIp: req.get('true-client-ip'),
+        cfConnectingIp: req.get('cf-connecting-ip'),
+      }),
+    );
+  next();
+});
 app.get('/api/health', (_req, res) =>
   res.json({ ok: true, storage: pool ? 'postgresql' : 'local-demo', resetAt: resetAt() }),
 );
