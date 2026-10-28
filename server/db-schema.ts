@@ -53,6 +53,7 @@ export const attempts = pgTable('attempts', {
   duration: integer().notNull(),
   category: text().notNull(),
   difficulty: text().notNull().default('Beginner'),
+  confidence: integer(),
 });
 export const xpTransactions = pgTable('xp_transactions', {
   attempt_id: bigint({ mode: 'number' })

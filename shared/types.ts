@@ -42,7 +42,22 @@ export interface Attempt {
   duration: number;
   category: string;
   difficulty?: Difficulty;
+  /** How sure the player said they were, 0–100, before seeing the answer. */
+  confidence?: number;
 }
+export interface Calibration {
+  /** Predictions that carried a confidence rating. */
+  count: number;
+  /** Mean Brier score, 0 (perfect) to 1; null until the first rated prediction. */
+  brier: number | null;
+  buckets: { stated: number; hitRate: number; n: number }[];
+}
+export const confidenceLevels = [
+  { value: 30, label: 'Guessing' },
+  { value: 50, label: 'Coin flip' },
+  { value: 70, label: 'Fairly sure' },
+  { value: 90, label: 'Very sure' },
+] as const;
 export interface Profile {
   id: string;
   name: string;
@@ -53,6 +68,7 @@ export interface Profile {
   streak: number;
   level: number;
   accuracy: number;
+  calibration: Calibration;
 }
 export interface Reveal {
   correct: boolean;

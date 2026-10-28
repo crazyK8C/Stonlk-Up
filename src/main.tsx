@@ -37,7 +37,7 @@ import type {
   Attempt,
   ReactionType,
 } from '../shared/types';
-import { levels } from '../shared/types';
+import { confidenceLevels, levels } from '../shared/types';
 import './styles.css';
 import { api } from './lib/api';
 import { Mascot, MiniChart } from './components/GameArt';
@@ -64,6 +64,7 @@ function App() {
     [question, setQuestion] = useState<Question | null>(null),
     [ticket, setTicket] = useState(''),
     [selected, setSelected] = useState<string | null>(null),
+    [confidence, setConfidence] = useState<number | null>(null),
     [reveal, setReveal] = useState<Reveal | null>(null),
     [busy, setBusy] = useState(false),
     [complete, setComplete] = useState(false),
@@ -148,6 +149,7 @@ function App() {
     setQuestion(null);
     setMode(nextMode);
     setSelected(null);
+    setConfidence(null);
     setReveal(null);
     setComplete(false);
     try {
@@ -213,13 +215,14 @@ function App() {
     }
   }
   async function submit() {
-    if (!question || selected === null || busy) return;
+    if (!question || selected === null || confidence === null || busy) return;
     setBusy(true);
     setError('');
     try {
       const r = await api<Reveal>('/questions/' + question.id + '/answer', {
         optionId: selected,
         ticket,
+        confidence,
       });
       setReveal(r);
       setPlayer(r.profile);
@@ -837,16 +840,40 @@ function App() {
                           </button>
                         ))}
                       </div>
+                      {!reveal && (
+                        <fieldset className="confidence-picker">
+                          <legend>How sure are you?</legend>
+                          <div className="confidence-options">
+                            {confidenceLevels.map((c) => (
+                              <button
+                                key={c.value}
+                                type="button"
+                                aria-pressed={confidence === c.value}
+                                className={
+                                  'confidence-option ' + (confidence === c.value ? 'selected' : '')
+                                }
+                                disabled={busy}
+                                onClick={() => setConfidence(c.value)}
+                              >
+                                <strong>{c.value}%</strong>
+                                <span>{c.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </fieldset>
+                      )}
                       {!reveal ? (
                         <div className="lock-row">
                           <span>
                             <Lock size={13} />
-                            Your first instinct. Your final answer.
+                            {confidence === null
+                              ? 'Pick an answer and how sure you are.'
+                              : 'Your first instinct. Your final answer.'}
                           </span>
                           <button
                             className="primary-btn"
                             onClick={submit}
-                            disabled={selected === null || busy}
+                            disabled={selected === null || confidence === null || busy}
                           >
                             {busy ? 'Checking…' : 'Lock prediction'}
                             <Lock size={16} />
@@ -855,7 +882,7 @@ function App() {
                       ) : (
                         <div className="locked-confirmation">
                           <Lock size={13} />
-                          Prediction locked. Your lesson is below.
+                          Prediction locked at {confidence}% sure. Your lesson is below.
                         </div>
                       )}
                     </section>
@@ -1165,6 +1192,65 @@ function App() {
                         <ArrowRight size={16} />
                       </button>
                     </div>
+                  </div>
+                  <div className="content-panel calibration-panel">
+                    <div className="section-heading compact">
+                      <h3>How well do you know what you know?</h3>
+                      <span className="muted small">
+                        {player?.calibration.brier === null || !player
+                          ? 'No rated predictions yet'
+                          : `Brier score ${player.calibration.brier.toFixed(2)} · lower is better`}
+                      </span>
+                    </div>
+                    {player && player.calibration.count ? (
+                      <>
+                        <p className="muted small">
+                          When you say you’re a certain percent sure, how often are you right? A
+                          well-calibrated player’s bars land on their markers.
+                        </p>
+                        <div className="calibration-rows">
+                          {player.calibration.buckets.map((b) => (
+                            <div className="calibration-row" key={b.stated}>
+                              <span>{b.stated}% sure</span>
+                              <div
+                                className="calibration-track"
+                                role="img"
+                                aria-label={`When ${b.stated}% sure you were right ${b.hitRate}% of the time across ${b.n} predictions`}
+                              >
+                                <span style={{ width: `${b.hitRate}%` }} />
+                                <i style={{ left: `${b.stated}%` }} />
+                              </div>
+                              <strong>
+                                {b.hitRate}% right <small>({b.n})</small>
+                              </strong>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="calibration-verdict">
+                          {(() => {
+                            const rated = player.calibration.buckets;
+                            const stated =
+                              rated.reduce((s, b) => s + b.stated * b.n, 0) /
+                              player.calibration.count;
+                            const hit =
+                              rated.reduce((s, b) => s + b.hitRate * b.n, 0) /
+                              player.calibration.count;
+                            if (player.calibration.count < 10)
+                              return `Only ${player.calibration.count} rated prediction${player.calibration.count === 1 ? '' : 's'} so far. Give it at least 10 before reading much into this.`;
+                            if (stated - hit > 10)
+                              return `You tend to be overconfident: you say ${Math.round(stated)}% on average but are right ${Math.round(hit)}% of the time.`;
+                            if (hit - stated > 10)
+                              return `You tend to be underconfident: you're right ${Math.round(hit)}% of the time but only say ${Math.round(stated)}%.`;
+                            return 'Nicely calibrated: your confidence roughly matches how often you’re right.';
+                          })()}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="muted small">
+                        Pick how sure you are before locking each prediction. Your calibration
+                        shows up here.
+                      </p>
+                    )}
                   </div>
                   <div className="content-panel history-panel">
                     <div className="section-heading compact">

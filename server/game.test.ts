@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { dailyQuestions, dayKey, resetAt, reward, expectedReturn, streak } from './game.js';
+import {
+  calibration,
+  dailyQuestions,
+  dayKey,
+  resetAt,
+  reward,
+  expectedReturn,
+  streak,
+} from './game.js';
 import { publicQuestion, questions } from './content.js';
 import type { Attempt } from '../shared/types.js';
 test('daily challenge is deterministic, unique, and contains exactly ten questions', () => {
@@ -54,4 +62,25 @@ test('streak requires full daily completion and expires after a missed day', () 
   assert.equal(streak(attempts, new Date('2026-10-06T02:00:00Z')), 1);
   assert.equal(streak(attempts.slice(0, 9), new Date('2026-10-06T02:00:00Z')), 0);
   assert.equal(streak(attempts, new Date('2026-10-07T02:00:00Z')), 0);
+});
+test('calibration scores stated confidence against outcomes', () => {
+  const base = { questionId: 'q', optionId: '0', xp: 0, coins: 0, mode: 'unlimited' as const };
+  const at = (correct: boolean, confidence?: number): Attempt => ({
+    ...base,
+    correct,
+    confidence,
+    day: '2026-10-06',
+    at: '2026-10-06T00:00:00Z',
+    duration: 1,
+    category: 'Risk',
+  });
+  assert.deepEqual(calibration([at(true)]), { count: 0, brier: null, buckets: [] });
+  const c = calibration([at(true, 90), at(false, 90), at(true, 50), at(false)]);
+  assert.equal(c.count, 3);
+  // ((0.9-1)^2 + (0.9-0)^2 + (0.5-1)^2) / 3 = (0.01 + 0.81 + 0.25) / 3
+  assert.equal(c.brier, 0.357);
+  assert.deepEqual(c.buckets, [
+    { stated: 50, hitRate: 100, n: 1 },
+    { stated: 90, hitRate: 50, n: 2 },
+  ]);
 });

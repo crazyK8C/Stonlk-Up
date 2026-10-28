@@ -82,6 +82,7 @@ function attempt(row: Record<string, unknown>): Attempt {
     duration: Number(row.duration),
     category: String(row.category),
     difficulty: row.difficulty as Attempt['difficulty'],
+    ...(row.confidence == null ? {} : { confidence: Number(row.confidence) }),
   };
 }
 export async function findUser(email: string): Promise<User | undefined> {
@@ -178,6 +179,7 @@ export async function mutateUser<T>(id: string, fn: (u: User) => T): Promise<T> 
           duration: x.duration,
           category: x.category,
           difficulty: x.difficulty ?? 'Beginner',
+          confidence: x.confidence ?? null,
         })
         .returning({ id: schema.attempts.id });
       await tx

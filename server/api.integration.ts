@@ -122,6 +122,26 @@ for (const question of d2.data.questions) {
 const after = await request('/user/profile', undefined, cookie);
 assert.equal(after.data.streak, 1);
 assert.equal(after.data.attempts.filter((a: { mode: string }) => a.mode === 'daily').length, 10);
+const rated = await request('/questions/unlimited?difficulty=Beginner', undefined, cookie);
+assert.equal(
+  (
+    await request(
+      '/questions/' + rated.data.question.id + '/answer',
+      { ticket: rated.data.ticket, optionId: '0', confidence: 150 },
+      cookie,
+    )
+  ).status,
+  400,
+);
+const ratedAnswer = await request(
+  '/questions/' + rated.data.question.id + '/answer',
+  { ticket: rated.data.ticket, optionId: '0', confidence: 70 },
+  cookie,
+);
+assert.equal(ratedAnswer.status, 200);
+assert.equal(ratedAnswer.data.profile.attempts.at(-1).confidence, 70);
+assert.equal(ratedAnswer.data.profile.calibration.count, 1);
+assert.equal(ratedAnswer.data.profile.calibration.buckets[0].stated, 70);
 await request('/auth/logout', {}, cookie);
 assert.equal((await request('/user/profile', undefined, cookie)).status, 401);
 assert.equal((await request('/auth/login', { email, password: 'wrong-password-42' })).status, 401);
@@ -130,5 +150,5 @@ assert.equal(login.status, 200);
 assert.equal((await request('/user/profile', undefined, login.cookie)).data.streak, 1);
 await request('/auth/logout', {}, login.cookie);
 console.log(
-  'API integration checks passed: auth, isolation, secrecy, validation, concurrent duplicates, practice rewards, daily completion, streaks and persistence.',
+  'API integration checks passed: auth, isolation, secrecy, validation, concurrent duplicates, practice rewards, daily completion, streaks, calibration and persistence.',
 );

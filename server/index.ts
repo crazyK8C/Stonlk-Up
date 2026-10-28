@@ -234,7 +234,11 @@ app.get('/api/questions/:id', (req, res) => {
 });
 app.post('/api/questions/:id/answer', async (req, res) => {
   const data = z
-    .object({ optionId: z.string().max(20), ticket: z.string().length(48) })
+    .object({
+      optionId: z.string().max(20),
+      ticket: z.string().length(48),
+      confidence: z.number().int().min(0).max(100).optional(),
+    })
     .strict()
     .parse(req.body);
   const t = tickets.get(data.ticket);
@@ -277,6 +281,7 @@ app.post('/api/questions/:id/answer', async (req, res) => {
       duration: Math.round((Date.now() - t.issued) / 1000),
       category: q.category,
       difficulty: q.difficulty,
+      ...(data.confidence === undefined ? {} : { confidence: data.confidence }),
     });
     u.xp += earned.xp;
     u.coins += earned.coins;

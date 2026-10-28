@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { Attempt, Profile } from '../shared/types.js';
+import type { Attempt, Calibration, Profile } from '../shared/types.js';
 import { questions } from './content.js';
 export function dayKey(now = new Date()) {
   return now.toISOString().slice(0, 10);
@@ -41,6 +41,28 @@ export function streak(attempts: Attempt[], now = new Date()) {
   }
   return count;
 }
+// Brier score: mean of (stated probability - outcome)^2. Lower is better calibrated.
+export function calibration(attempts: Attempt[]): Calibration {
+  const rated = attempts.filter((a) => typeof a.confidence === 'number');
+  const groups = new Map<number, { hits: number; n: number }>();
+  for (const a of rated) {
+    const g = groups.get(a.confidence!) ?? { hits: 0, n: 0 };
+    g.n++;
+    if (a.correct) g.hits++;
+    groups.set(a.confidence!, g);
+  }
+  const brier = rated.length
+    ? rated.reduce((s, a) => s + (a.confidence! / 100 - (a.correct ? 1 : 0)) ** 2, 0) /
+      rated.length
+    : null;
+  return {
+    count: rated.length,
+    brier: brier === null ? null : Math.round(brier * 1000) / 1000,
+    buckets: [...groups.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([stated, g]) => ({ stated, hitRate: Math.round((g.hits / g.n) * 100), n: g.n })),
+  };
+}
 export function profile(user: {
   id: string;
   name: string;
@@ -56,6 +78,7 @@ export function profile(user: {
     accuracy: user.attempts.length
       ? Math.round((user.attempts.filter((a) => a.correct).length / user.attempts.length) * 100)
       : 0,
+    calibration: calibration(user.attempts),
   };
 }
 export function reward(correct: boolean, mode: 'daily' | 'unlimited', alreadyRewarded: boolean) {
