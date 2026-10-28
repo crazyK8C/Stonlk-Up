@@ -33,8 +33,10 @@ const production = process.env.NODE_ENV === 'production';
 const appOrigin =
   process.env.APP_ORIGIN || process.env.RENDER_EXTERNAL_URL || 'http://127.0.0.1:5173';
 const app = express();
-// Behind a hosting proxy, trust one hop so rate limits see real client IPs.
-if (production) app.set('trust proxy', 1);
+// Render's chain (measured 2026-10-29): client -> Cloudflare -> Render proxy -> local sidecar.
+// Trusting exactly those three hops makes req.ip the real client, and forged
+// X-Forwarded-For entries (which sit further left) are ignored.
+if (production) app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS || 3));
 if (production && !pool)
   throw new Error('PostgreSQL DATABASE_URL is required in production');
 if (pool) {
@@ -107,21 +109,6 @@ async function session(res: express.Response, id: string) {
     path: '/',
   });
 }
-// TEMPORARY: measure the proxy chain in front of the app. Remove after reading the log.
-app.use('/api/health', (req, _res, next) => {
-  if (req.get('x-stonk-proxy-check') === 'chain-2026-10-29')
-    console.log(
-      'proxy-check',
-      JSON.stringify({
-        xff: req.get('x-forwarded-for'),
-        socket: req.socket.remoteAddress,
-        ip: req.ip,
-        trueClientIp: req.get('true-client-ip'),
-        cfConnectingIp: req.get('cf-connecting-ip'),
-      }),
-    );
-  next();
-});
 app.get('/api/health', (_req, res) =>
   res.json({ ok: true, storage: pool ? 'postgresql' : 'local-demo', resetAt: resetAt() }),
 );

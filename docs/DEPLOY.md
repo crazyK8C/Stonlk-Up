@@ -33,6 +33,7 @@ Every push to `main` redeploys automatically.
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `NODE_ENV` | Set by the start command | `production` turns on secure cookies, proxy trust and `0.0.0.0` binding |
 | `APP_ORIGIN` | No | Defaults to Render's `RENDER_EXTERNAL_URL`. Set it if you add a custom domain. |
+| `TRUST_PROXY_HOPS` | No | Proxies between the visitor and the app, used to find the real client IP for rate limits. Defaults to 3 (Cloudflare, Render's proxy, Render's sidecar, measured October 2026). Change only if Render's routing changes. |
 | `HOST`, `PORT` | No | Render provides `PORT`. `HOST` defaults to `0.0.0.0` in production. |
 | `FRED_API_KEY` | No | Only for `pnpm data:sync` |
 
