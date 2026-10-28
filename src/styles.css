@@ -2819,3 +2819,145 @@ select {
     transition: none !important;
   }
 }
+.sandbox {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 980px) {
+  .sandbox {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.sandbox-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.sandbox-grid {
+  stroke: #26301f;
+  stroke-width: 1;
+}
+.sandbox-axis {
+  fill: #79896b;
+  font-size: 11px;
+}
+.sandbox-path {
+  fill: none;
+  stroke-width: 1.3;
+  opacity: 0.32;
+}
+.sandbox-path.up {
+  stroke: var(--lime);
+}
+.sandbox-path.down {
+  stroke: #f08a7a;
+}
+.sandbox-start {
+  stroke: #e9eae4;
+  stroke-width: 1.5;
+  stroke-dasharray: 6 5;
+}
+.sandbox-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 10px;
+  font-size: 10px;
+  color: #94a77b;
+}
+.sandbox-legend i {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+}
+.sandbox-legend i.up {
+  background: var(--lime);
+}
+.sandbox-legend i.down {
+  background: #f08a7a;
+}
+.sandbox-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.sandbox-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.sandbox-seg button {
+  min-width: 54px;
+  min-height: 44px;
+  border: 1px solid #34412b;
+  border-radius: 9px;
+  background: #171d14;
+  color: #c6d9b0;
+  font-family: Manrope, sans-serif;
+  font-weight: 700;
+}
+.sandbox-seg button.selected {
+  background: var(--lime);
+  border-color: var(--lime);
+  color: #141b11;
+}
+.sandbox-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+  color: #b7c6a6;
+}
+.sandbox-slider strong {
+  color: #d3eac0;
+}
+.sandbox-slider input {
+  accent-color: var(--lime);
+}
+.sandbox-slider small {
+  color: #94a77b;
+  font-size: 10px;
+}
+.sandbox-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.sandbox-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #171d14;
+}
+.sandbox-stats strong {
+  font-family: Manrope, sans-serif;
+  font-size: 19px;
+  color: #e9eae4;
+  font-variant-numeric: tabular-nums;
+}
+.sandbox-stats .warn strong {
+  color: #f08a7a;
+}
+.sandbox-stats span {
+  font-size: 9px;
+  color: #94a77b;
+}
+.sandbox-controls .sandbox-verdict {
+  font-size: 12px;
+  color: #d3eac0;
+  line-height: 1.6;
+}
+.sandbox-controls .sandbox-note {
+  display: flex;
+  gap: 7px;
+  font-size: 9px;
+  line-height: 1.6;
+  color: #79896b;
+}

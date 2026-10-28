@@ -27,6 +27,7 @@ import {
   Trophy,
   Cat,
   CheckCircle2,
+  FlaskConical,
 } from 'lucide-react';
 import type {
   Profile,
@@ -41,7 +42,8 @@ import { confidenceLevels, levels } from '../shared/types';
 import './styles.css';
 import { api } from './lib/api';
 import { Mascot, MiniChart } from './components/GameArt';
-type View = 'play' | 'path' | 'stats' | 'guide';
+import { RiskSandbox } from './components/RiskSandbox';
+type View = 'play' | 'path' | 'lab' | 'stats' | 'guide';
 type Daily = {
   day: string;
   resetAt: string;
@@ -260,6 +262,7 @@ function App() {
   const nav = [
     { id: 'play' as View, label: 'Play the market', icon: TrendingUp },
     { id: 'path' as View, label: 'Learning path', icon: BookOpen },
+    { id: 'lab' as View, label: 'Strategy Lab', icon: FlaskConical },
     { id: 'stats' as View, label: 'Your stats', icon: BarChart3 },
   ];
   return (
@@ -362,9 +365,11 @@ function App() {
                     ? 'Play the market'
                     : view === 'path'
                       ? 'Learning path'
-                      : view === 'stats'
-                        ? 'Your stats'
-                        : 'How to play'}
+                      : view === 'lab'
+                        ? 'Strategy Lab'
+                        : view === 'stats'
+                          ? 'Your stats'
+                          : 'How to play'}
               </strong>
             </span>
           </div>
@@ -1247,8 +1252,8 @@ function App() {
                       </>
                     ) : (
                       <p className="muted small">
-                        Pick how sure you are before locking each prediction. Your calibration
-                        shows up here.
+                        Pick how sure you are before locking each prediction. Your calibration shows
+                        up here.
                       </p>
                     )}
                   </div>
@@ -1299,6 +1304,29 @@ function App() {
                   </div>
                 </>
               )}
+            </>
+          )}
+          {!mode && view === 'lab' && (
+            <>
+              <div className="page-heading">
+                <div>
+                  <div className="eyebrow">STRATEGY LAB · DRILL 1 OF MANY</div>
+                  <h1>
+                    Same winning strategy.
+                    <br />
+                    <span>Only the bet size changes.</span>
+                  </h1>
+                  <p>
+                    100 simulated traders, 100 trades each, all with a real edge. Change how much
+                    they risk per trade and watch what happens.
+                  </p>
+                </div>
+              </div>
+              <RiskSandbox />
+              <p className="muted path-note">
+                This is a model for learning, not a forecast. Real markets add fees, slippage, gaps
+                and emotions.
+              </p>
             </>
           )}
           {!mode && view === 'guide' && (
@@ -1405,6 +1433,7 @@ function App() {
         {[
           { id: 'play' as View, label: 'Play', icon: TrendingUp },
           { id: 'path' as View, label: 'Learn', icon: BookOpen },
+          { id: 'lab' as View, label: 'Lab', icon: FlaskConical },
           { id: 'stats' as View, label: 'Stats', icon: BarChart3 },
           { id: 'guide' as View, label: 'Guide', icon: CircleHelp },
         ].map((item) => (
