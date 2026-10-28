@@ -56,6 +56,7 @@ function App() {
     [auth, setAuth] = useState(false),
     [authMode, setAuthMode] = useState<'register' | 'login'>('register'),
     [authBusy, setAuthBusy] = useState(false),
+    [adult, setAdult] = useState(false),
     [error, setError] = useState(''),
     [mode, setMode] = useState<Mode | null>(null),
     [difficulty, setDifficulty] = useState<Difficulty>('Beginner'),
@@ -184,6 +185,7 @@ function App() {
         name: form.get('name') || undefined,
         email: form.get('email'),
         password: form.get('password'),
+        adult: authMode === 'register' ? adult : undefined,
       });
       setPlayer(user);
       setAuth(false);
@@ -199,7 +201,7 @@ function App() {
     setAuthBusy(true);
     setError('');
     try {
-      const u = await api<Profile>('/auth/guest', {});
+      const u = await api<Profile>('/auth/guest', { adult });
       setPlayer(u);
       setAuth(false);
       if (pending) await loadRound(pending, u);
@@ -1268,6 +1270,19 @@ function App() {
                   once per question. Guests keep their progress in their current session; create an
                   account for a reusable login.
                 </p>
+                <h4 id="privacy">Privacy notice</h4>
+                <p>
+                  Stonk Up is for people aged 18 and over. To save your progress we store your
+                  player name, email, a scrypt hash of your password (never the password itself),
+                  your answers, how long each took, and your XP and coins. Guests get a random ID
+                  instead of an email. A session cookie keeps you signed in for seven days.
+                </p>
+                <p>
+                  We use this only to run the game and show your stats. There are no ads, no
+                  analytics trackers, and we don’t sell or share your data. The app is hosted on
+                  Render with the database on Neon, and fonts load from Google Fonts, which sees
+                  your IP address.
+                </p>
                 <h4>Cat credits</h4>
                 <p>
                   Reaction artwork: Twemoji © Twitter and contributors, licensed under{' '}
@@ -1370,6 +1385,30 @@ function App() {
                 Sign in
               </button>
             </div>
+            <label className="age-check">
+              <input
+                type="checkbox"
+                aria-label="I’m 18 or older and I’ve read the privacy notice"
+                checked={adult}
+                onChange={(e) => setAdult(e.target.checked)}
+              />
+              <span>
+                I’m 18 or older and I’ve read the{' '}
+                <button
+                  type="button"
+                  className="inline-link"
+                  onClick={() => {
+                    setAuth(false);
+                    setPending(null);
+                    navigate('guide');
+                    setTimeout(() => document.getElementById('privacy')?.scrollIntoView(), 100);
+                  }}
+                >
+                  privacy notice
+                </button>
+                .
+              </span>
+            </label>
             <form onSubmit={authenticate}>
               {authMode === 'register' && (
                 <label>

@@ -13,6 +13,7 @@ export interface User {
   xp: number;
   coins: number;
   attempts: Attempt[];
+  age_confirmed_at?: string;
 }
 interface State {
   users: User[];
@@ -92,12 +93,10 @@ export async function findUser(email: string): Promise<User | undefined> {
 }
 export async function createUser(user: User) {
   if (pool)
-    await pool.query('INSERT INTO users(id,name,email,password_hash) VALUES($1,$2,$3,$4)', [
-      user.id,
-      user.name,
-      user.email,
-      user.password_hash,
-    ]);
+    await pool.query(
+      'INSERT INTO users(id,name,email,password_hash,age_confirmed_at) VALUES($1,$2,$3,$4,$5)',
+      [user.id, user.name, user.email, user.password_hash, user.age_confirmed_at ?? null],
+    );
   else
     await exclusive(async () => {
       if (state.users.some((u) => u.email === user.email))

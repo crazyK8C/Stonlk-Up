@@ -18,7 +18,17 @@ async function request(path: string, body?: unknown, cookie = '') {
 }
 const email = `integration-${randomUUID()}@example.test`;
 const password = 'integration-only-password-42';
-const created = await request('/auth/register', { email, password, name: 'Integration test' });
+assert.equal(
+  (await request('/auth/register', { email, password, name: 'Integration test' })).status,
+  400,
+);
+assert.equal((await request('/auth/guest', {})).status, 400);
+const created = await request('/auth/register', {
+  email,
+  password,
+  name: 'Integration test',
+  adult: true,
+});
 assert.equal(created.status, 200);
 assert.ok(created.cookie.includes('stonk_session='));
 assert.ok(!('password_hash' in created.data));
@@ -39,7 +49,7 @@ assert.equal(
     .status,
   400,
 );
-const other = await request('/auth/guest', {});
+const other = await request('/auth/guest', { adult: true });
 assert.equal(
   (await request('/questions/' + q.id + '/answer', { ticket, optionId: '0' }, other.cookie)).status,
   400,

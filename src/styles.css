@@ -1844,6 +1844,35 @@ select {
   color: #728461;
   font-size: 10px;
 }
+.auth-modal label.age-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 4px;
+  line-height: 1.6;
+  cursor: pointer;
+}
+.auth-modal .age-check input {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin: 1px 0 0;
+  padding: 0;
+  accent-color: var(--lime);
+}
+.inline-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--lime);
+  font-size: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.inline-link:hover:not(:disabled) {
+  transform: none;
+}
 .auth-modal form > .primary-btn {
   width: 100%;
   margin-top: 22px;

@@ -80,6 +80,10 @@ const authLimit = rateLimit({
   message: { error: 'Too many sign-in attempts. Please try again in 15 minutes.' },
 });
 const hash = (v: string) => createHash('sha256').update(v).digest('hex');
+// New players confirm they are 18+ (India's DPDP rules treat under-18s as children).
+const adultConfirmation = z.literal(true, {
+  error: 'Confirm you are 18 or older to play.',
+});
 function token(req: express.Request) {
   return (
     req.headers.cookie
@@ -114,6 +118,7 @@ app.post('/api/auth/:action', authLimit, async (req, res) => {
     return res.json({ ok: true });
   }
   if (action === 'guest') {
+    z.object({ adult: adultConfirmation }).parse(req.body);
     const id = randomUUID();
     const user: User = {
       id,
@@ -123,6 +128,7 @@ app.post('/api/auth/:action', authLimit, async (req, res) => {
       xp: 0,
       coins: 0,
       attempts: [],
+      age_confirmed_at: new Date().toISOString(),
     };
     await createUser(user);
     await session(res, id);
@@ -134,11 +140,20 @@ app.post('/api/auth/:action', authLimit, async (req, res) => {
     .object({
       email: z
         .string()
-        .email()
-        .max(254)
+        .email('Enter a valid email address.')
+        .max(254, 'That email address is too long.')
         .transform((x) => x.toLowerCase()),
-      password: z.string().min(10).max(128),
-      name: z.string().trim().min(2).max(32).optional(),
+      password: z
+        .string()
+        .min(10, 'Use at least 10 characters for your password.')
+        .max(128, 'Use 128 characters or fewer for your password.'),
+      name: z
+        .string()
+        .trim()
+        .min(2, 'Use at least 2 characters for your name.')
+        .max(32, 'Use 32 characters or fewer for your name.')
+        .optional(),
+      adult: action === 'register' ? adultConfirmation : z.unknown().optional(),
     })
     .parse(req.body);
   let user = await findUser(data.email);
@@ -154,6 +169,7 @@ app.post('/api/auth/:action', authLimit, async (req, res) => {
       xp: 0,
       coins: 0,
       attempts: [],
+      age_confirmed_at: new Date().toISOString(),
     };
     await createUser(user);
   } else {
