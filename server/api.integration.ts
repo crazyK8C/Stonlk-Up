@@ -155,6 +155,104 @@ assert.equal(market.data.prices.length, 251);
 assert.deepEqual(market.data, (await request('/lab/market?preset=crash&seed=7')).data);
 assert.equal((await request('/lab/market?preset=moon&seed=7')).status, 400);
 assert.equal((await request('/lab/market?preset=calm&seed=0')).status, 400);
+const catalogue = await request('/events', undefined, cookie);
+assert.equal(catalogue.status, 200);
+assert.ok(catalogue.data.length >= 6);
+const runPlan = {
+  exitDrawdown: 20,
+  addRule: 'never',
+  confidence: 70,
+  thesis: 'A mix rides out shocks.',
+};
+assert.equal(
+  (
+    await request(
+      '/events/runs',
+      {
+        eventId: 'covid-2020',
+        subject: 'mix',
+        mix: { equity: 60, debt: 30, gold: 20 },
+        plan: runPlan,
+        blind: true,
+      },
+      cookie,
+    )
+  ).status,
+  400,
+);
+assert.equal(
+  (
+    await request(
+      '/events/runs',
+      { eventId: 'covid-2020', subject: 'stock', plan: runPlan, blind: true },
+      cookie,
+    )
+  ).status,
+  400,
+);
+const started = await request(
+  '/events/runs',
+  {
+    eventId: 'covid-2020',
+    subject: 'mix',
+    mix: { equity: 60, debt: 30, gold: 10 },
+    plan: runPlan,
+    blind: true,
+  },
+  cookie,
+);
+assert.equal(started.status, 200);
+assert.equal(started.data.title, 'Mystery event');
+assert.equal(started.data.prices.length, 1);
+assert.ok(!('holdPath' in started.data));
+assert.equal(
+  (await request('/events/runs/' + started.data.id, undefined, other.cookie)).status,
+  404,
+);
+const [firstMove, doubleMove] = await Promise.all([
+  request('/events/runs/' + started.data.id + '/decide', { action: 'hold', day: 0 }, cookie),
+  request('/events/runs/' + started.data.id + '/decide', { action: 'hold', day: 0 }, cookie),
+]);
+assert.deepEqual([firstMove.status, doubleMove.status].sort(), [200, 409]);
+let runState = firstMove.status === 200 ? firstMove : doubleMove;
+assert.equal(runState.data.day, 5);
+assert.equal(runState.data.prices.length, 6);
+for (let step = 0; !runState.data.done; step++) {
+  assert.ok(step < 8, 'run should finish within eight checkpoints');
+  runState = await request(
+    '/events/runs/' + started.data.id + '/decide',
+    { action: 'hold', day: runState.data.day },
+    cookie,
+  );
+  assert.equal(runState.status, 200);
+}
+assert.equal(runState.data.eventName, 'COVID crash and rebound');
+assert.equal(runState.data.holdPath.length, 41);
+assert.equal(runState.data.summary.behaviourGap, 0);
+assert.equal(
+  (
+    await request(
+      '/events/runs/' + started.data.id + '/decide',
+      { action: 'hold', day: 40 },
+      cookie,
+    )
+  ).status,
+  409,
+);
+assert.equal(
+  (
+    await request(
+      '/events/runs/' + started.data.id + '/reflection',
+      { text: 'Held through it.' },
+      cookie,
+    )
+  ).status,
+  200,
+);
+const runList = await request('/events/runs', undefined, cookie);
+assert.equal(runList.data[0].id, started.data.id);
+assert.equal(runList.data[0].done, true);
+assert.ok(runList.data[0].summary.processScore >= 0);
 await request('/auth/logout', {}, cookie);
 assert.equal((await request('/user/profile', undefined, cookie)).status, 401);
 assert.equal((await request('/auth/login', { email, password: 'wrong-password-42' })).status, 401);
@@ -163,5 +261,5 @@ assert.equal(login.status, 200);
 assert.equal((await request('/user/profile', undefined, login.cookie)).data.streak, 1);
 await request('/auth/logout', {}, login.cookie);
 console.log(
-  'API integration checks passed: auth, isolation, secrecy, validation, concurrent duplicates, practice rewards, daily completion, streaks, calibration, topic practice, synthetic markets and persistence.',
+  'API integration checks passed: auth, isolation, secrecy, validation, concurrent duplicates, practice rewards, daily completion, streaks, calibration, topic practice, synthetic markets, Event Lab runs and persistence.',
 );

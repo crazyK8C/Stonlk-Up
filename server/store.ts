@@ -4,7 +4,14 @@ import { eq } from 'drizzle-orm';
 import * as schema from './db-schema.js';
 import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
-import type { Attempt } from '../shared/types.js';
+import type {
+  Attempt,
+  EventAction,
+  EventMix,
+  EventPlan,
+  EventSubject,
+  RunSummary,
+} from '../shared/types.js';
 export interface User {
   id: string;
   name: string;
@@ -15,21 +22,39 @@ export interface User {
   attempts: Attempt[];
   age_confirmed_at?: string;
 }
+export interface EventRunRecord {
+  id: string;
+  userId: string;
+  eventId: string;
+  subject: EventSubject;
+  mix: EventMix | null;
+  plan: EventPlan;
+  seed: number;
+  blind: boolean;
+  day: number;
+  decisions: { day: number; action: EventAction }[];
+  reflection: string;
+  summary: RunSummary | null;
+  createdAt: string;
+  completedAt: string | null;
+}
 interface State {
   users: User[];
   sessions: { hash: string; userId: string; expires: number }[];
   challenges: Record<string, string[]>;
+  runs: EventRunRecord[];
 }
 export const pool = process.env.DATABASE_URL
   ? new pg.Pool({ connectionString: process.env.DATABASE_URL })
   : null;
 export const db = pool ? drizzle(pool, { schema }) : null;
-let state: State = { users: [], sessions: [], challenges: {} };
+let state: State = { users: [], sessions: [], challenges: {}, runs: [] };
 if (!pool) {
   await mkdir('.local', { recursive: true });
   try {
     state = JSON.parse(await readFile('.local/demo.json', 'utf8'));
     state.challenges ??= {};
+    state.runs ??= [];
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
   }
@@ -210,4 +235,102 @@ export async function dailyIds(day: string, proposed: string[]): Promise<string[
     }
     return state.challenges[day];
   });
+}
+function runFromRow(row: Record<string, unknown>): EventRunRecord {
+  return {
+    id: String(row.id),
+    userId: String(row.user_id),
+    eventId: String(row.event_id),
+    subject: row.subject as EventSubject,
+    mix: (row.mix as EventMix | null) ?? null,
+    plan: row.plan as EventPlan,
+    seed: Number(row.seed),
+    blind: Boolean(row.blind),
+    day: Number(row.day),
+    decisions: row.decisions as EventRunRecord['decisions'],
+    reflection: String(row.reflection ?? ''),
+    summary: (row.summary as RunSummary | null) ?? null,
+    createdAt: (row.created_at as Date).toISOString(),
+    completedAt: row.completed_at ? (row.completed_at as Date).toISOString() : null,
+  };
+}
+export async function createRun(run: EventRunRecord) {
+  if (pool)
+    await pool.query(
+      'INSERT INTO event_runs(id,user_id,event_id,subject,mix,plan,seed,blind) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
+      [
+        run.id,
+        run.userId,
+        run.eventId,
+        run.subject,
+        run.mix ? JSON.stringify(run.mix) : null,
+        JSON.stringify(run.plan),
+        run.seed,
+        run.blind,
+      ],
+    );
+  else
+    await exclusive(async () => {
+      state.runs.push(run);
+      await persist();
+    });
+}
+export async function getRun(id: string, userId: string): Promise<EventRunRecord | undefined> {
+  if (!pool) return structuredClone(state.runs.find((r) => r.id === id && r.userId === userId));
+  const r = await pool.query('SELECT * FROM event_runs WHERE id=$1 AND user_id=$2', [id, userId]);
+  return r.rows[0] ? runFromRow(r.rows[0]) : undefined;
+}
+/** Saves progress only if nobody advanced the run since it was read (no double moves). */
+export async function advanceRun(run: EventRunRecord, expectedDay: number): Promise<boolean> {
+  if (pool) {
+    const r = await pool.query(
+      'UPDATE event_runs SET day=$3, decisions=$4, summary=$5, completed_at=$6 WHERE id=$1 AND user_id=$2 AND day=$7',
+      [
+        run.id,
+        run.userId,
+        run.day,
+        JSON.stringify(run.decisions),
+        run.summary ? JSON.stringify(run.summary) : null,
+        run.completedAt,
+        expectedDay,
+      ],
+    );
+    return r.rowCount === 1;
+  }
+  return exclusive(async () => {
+    const i = state.runs.findIndex((r) => r.id === run.id && r.userId === run.userId);
+    if (i < 0 || state.runs[i].day !== expectedDay) return false;
+    state.runs[i] = run;
+    await persist();
+    return true;
+  });
+}
+export async function saveReflection(id: string, userId: string, text: string) {
+  if (pool) {
+    const r = await pool.query(
+      'UPDATE event_runs SET reflection=$3 WHERE id=$1 AND user_id=$2 AND completed_at IS NOT NULL',
+      [id, userId, text],
+    );
+    return r.rowCount === 1;
+  }
+  return exclusive(async () => {
+    const run = state.runs.find((r) => r.id === id && r.userId === userId && r.completedAt);
+    if (!run) return false;
+    run.reflection = text;
+    await persist();
+    return true;
+  });
+}
+export async function listRuns(userId: string): Promise<EventRunRecord[]> {
+  if (!pool)
+    return structuredClone(
+      state.runs
+        .filter((r) => r.userId === userId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    );
+  const r = await pool.query(
+    'SELECT * FROM event_runs WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100',
+    [userId],
+  );
+  return r.rows.map(runFromRow);
 }

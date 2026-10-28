@@ -46,6 +46,8 @@ import { Mascot, MiniChart } from './components/GameArt';
 import { RiskSandbox } from './components/RiskSandbox';
 import { MarketLab } from './components/MarketLab';
 import { StudyTracks } from './components/StudyTracks';
+import { EventLab } from './components/EventLab';
+import { GapTracker } from './components/GapTracker';
 type View = 'play' | 'study' | 'practice' | 'lab' | 'stats' | 'guide';
 type Daily = {
   day: string;
@@ -1213,13 +1215,13 @@ function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <div className="eyebrow">YOUR MARKET BRAIN, UNDER THE MICROSCOPE</div>
+                  <div className="eyebrow">REFLECT · YOUR MARKET BRAIN, UNDER THE MICROSCOPE</div>
                   <h1>
-                    Numbers don’t lie.
+                    Results swing with luck.
                     <br />
-                    <span>But they can be funny.</span>
+                    <span>Process is what you control.</span>
                   </h1>
-                  <p>Your predictions, progress, and a few places to get better.</p>
+                  <p>Your gaps, your calibration, and the receipts for every prediction.</p>
                 </div>
               </div>
               <div className="stats-overview">
@@ -1248,6 +1250,7 @@ function App() {
                   </div>
                 ))}
               </div>
+              {player && <GapTracker onOpenLab={() => navigate('lab')} />}
               {!attempts.length ? (
                 <div className="empty-state">
                   <Target size={42} />
@@ -1452,7 +1455,15 @@ function App() {
                   </p>
                 </div>
               </div>
-              <h2 className="lab-drill-title">
+              <h2 className="lab-drill-title" id="event-lab">
+                Event Lab · Live through market history, then measure the gaps
+              </h2>
+              <EventLab
+                signedIn={!!player}
+                onNeedAuth={() => setAuth(true)}
+                onOpenReflect={() => navigate('stats')}
+              />
+              <h2 className="lab-drill-title lab-drill-spaced">
                 Drill 1 · Same winning strategy, only the bet size changes
               </h2>
               <RiskSandbox />

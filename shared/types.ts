@@ -63,6 +63,95 @@ export interface MarketPath {
   /** Percentages, one decimal place. */
   stats: { totalReturn: number; maxDrawdown: number; annualVolatility: number; worstDay: number };
 }
+// ---- Event Lab ----
+export type EventShelf = 'india' | 'global' | 'crowd';
+export type EventSubject = 'index' | 'mix' | 'stock';
+export type EventAction = 'hold' | 'trim' | 'add' | 'exit';
+export interface EventMix {
+  equity: number;
+  debt: number;
+  gold: number;
+}
+export interface EventPlan {
+  /** Exit if your holding falls this many percent from its peak; null = no exit rule. */
+  exitDrawdown: number | null;
+  addRule: 'never' | 'once' | 'any';
+  /** How sure you are (0–100) that your holding ends above where it started. */
+  confidence: number;
+  thesis: string;
+}
+export interface EventCard {
+  id: string;
+  shelf: EventShelf;
+  name: string;
+  when: string;
+  blurb: string;
+  knownThen: string;
+  skill: string;
+  subjects: EventSubject[];
+}
+export interface EventNews {
+  day: number;
+  kind: 'news' | 'hype';
+  text: string;
+}
+export interface EventRunView {
+  id: string;
+  title: string;
+  when: string;
+  subject: EventSubject;
+  plan: EventPlan;
+  day: number;
+  totalDays: number;
+  checkpointEvery: number;
+  done: boolean;
+  /** Subject price path revealed so far, indexed to 100 at the start. */
+  prices: number[];
+  /** Your holding's value so far, after your decisions. */
+  values: number[];
+  invested: number;
+  news: EventNews[];
+  decisions: { day: number; action: EventAction }[];
+  ruleTriggered: boolean;
+}
+export type RunVerdict = 'earned-win' | 'bad-beat' | 'dumb-luck' | 'deserved-loss';
+export interface RunSummary {
+  processScore: number;
+  outcome: number;
+  holdOutcome: number;
+  behaviourGap: number;
+  /** Checkpoints between your rule triggering and acting on it; null if it never triggered. */
+  checkpointsLate: number | null;
+  ruleIgnored: boolean;
+  subjectDrawdown: number;
+  benchmarkDrawdown: number | null;
+  confidence: number;
+  hit: boolean;
+  brier: number;
+  verdict: RunVerdict;
+  tags: string[];
+}
+export interface EventDebrief extends EventRunView {
+  eventId: string;
+  eventName: string;
+  eventWhen: string;
+  knownThen: string;
+  notKnowable: string;
+  holdPath: number[];
+  benchmarkPath: number[] | null;
+  triggerDay: number | null;
+  summary: RunSummary;
+  reflection: string;
+}
+export interface EventRunListItem {
+  id: string;
+  eventId: string;
+  eventName: string;
+  subject: EventSubject;
+  createdAt: string;
+  done: boolean;
+  summary: RunSummary | null;
+}
 export const confidenceLevels = [
   { value: 30, label: 'Guessing' },
   { value: 50, label: 'Coin flip' },

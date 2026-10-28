@@ -23,11 +23,34 @@ import {
   safeUser,
   dailyIds,
   pool,
+  createRun,
+  getRun,
+  advanceRun,
+  saveReflection,
+  listRuns,
+  type EventRunRecord,
   type User,
 } from './store.js';
+import {
+  CHECKPOINT_EVERY,
+  TOTAL_DAYS,
+  eventCards,
+  findEvent,
+  replay,
+  scenario,
+  summarise,
+  triggerDay,
+} from './events.js';
 import { reaction } from './reactions.js';
 import { generateMarket } from './market.js';
-import { levels, type Mode, type Reveal, type ReactionType } from '../shared/types.js';
+import {
+  levels,
+  type EventDebrief,
+  type EventRunView,
+  type Mode,
+  type Reveal,
+  type ReactionType,
+} from '../shared/types.js';
 const scrypt = promisify(rawScrypt);
 const production = process.env.NODE_ENV === 'production';
 // Hosts like Render set RENDER_EXTERNAL_URL; APP_ORIGIN overrides it for custom domains.
@@ -38,8 +61,7 @@ const app = express();
 // Trusting exactly those three hops makes req.ip the real client, and forged
 // X-Forwarded-For entries (which sit further left) are ignored.
 if (production) app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS || 3));
-if (production && !pool)
-  throw new Error('PostgreSQL DATABASE_URL is required in production');
+if (production && !pool) throw new Error('PostgreSQL DATABASE_URL is required in production');
 if (pool) {
   const stored = await pool.query('SELECT content FROM questions WHERE published=TRUE ORDER BY id');
   const published = stored.rows.map((row) => contentSchema.parse(row.content));
@@ -227,8 +249,7 @@ app.get('/api/questions/daily', async (_req, res) => {
 app.get('/api/questions/unlimited', (req, res) => {
   const { difficulty, category } = req.query;
   const filtered = questions.filter(
-    (q) =>
-      (!difficulty || q.difficulty === difficulty) && (!category || q.category === category),
+    (q) => (!difficulty || q.difficulty === difficulty) && (!category || q.category === category),
   );
   if (!filtered.length)
     return res.status(400).json({ error: 'No practice questions match that filter yet.' });
@@ -315,6 +336,149 @@ app.post('/api/questions/:id/answer', async (req, res) => {
   });
   tickets.delete(data.ticket);
   res.json(result);
+});
+// ---- Event Lab: the server owns the scenario so future prices stay hidden. ----
+function runView(run: EventRunRecord): EventRunView | EventDebrief {
+  const spec = findEvent(run.eventId)!;
+  const sc = scenario(spec, run.seed, run.mix);
+  const done = run.day >= TOTAL_DAYS;
+  const { values, invested } = replay(sc.subject, run.decisions, run.day);
+  const view: EventRunView = {
+    id: run.id,
+    title: run.blind && !done ? 'Mystery event' : spec.name,
+    when: run.blind && !done ? 'Date hidden' : spec.when,
+    subject: run.subject,
+    plan: run.plan,
+    day: run.day,
+    totalDays: TOTAL_DAYS,
+    checkpointEvery: CHECKPOINT_EVERY,
+    done,
+    prices: sc.subject.slice(0, run.day + 1),
+    values,
+    invested: Math.round(invested * 100) / 100,
+    news: spec.news.filter((n) => n.day <= run.day),
+    decisions: run.decisions,
+    // Stays on from the first day the rule was breached until you exit, matching the debrief.
+    ruleTriggered: !done && invested > 0 && triggerDay(values, run.decisions, run.plan) !== null,
+  };
+  if (!done) return view;
+  return {
+    ...view,
+    eventId: spec.id,
+    eventName: spec.name,
+    eventWhen: spec.when,
+    knownThen: spec.knownThen,
+    notKnowable: spec.notKnowable,
+    holdPath: sc.subject,
+    benchmarkPath: sc.benchmark,
+    triggerDay: triggerDay(values, run.decisions, run.plan),
+    summary:
+      run.summary ?? summarise(spec, sc.subject, sc.benchmark, values, run.decisions, run.plan),
+    reflection: run.reflection,
+  };
+}
+app.get('/api/events', (_req, res) => res.json(eventCards));
+app.post('/api/events/runs', async (req, res) => {
+  const data = z
+    .object({
+      eventId: z.string().max(40),
+      subject: z.enum(['index', 'mix', 'stock']),
+      mix: z
+        .object({
+          equity: z.number().int().min(0).max(100),
+          debt: z.number().int().min(0).max(100),
+          gold: z.number().int().min(0).max(100),
+        })
+        .refine((m) => m.equity + m.debt + m.gold === 100, 'Your mix must add up to 100%.')
+        .optional(),
+      plan: z.object({
+        exitDrawdown: z.number().int().min(5).max(60).nullable(),
+        addRule: z.enum(['never', 'once', 'any']),
+        confidence: z.number().int().min(0).max(100),
+        thesis: z.string().trim().max(280),
+      }),
+      blind: z.boolean(),
+    })
+    .strict()
+    .parse(req.body);
+  const spec = findEvent(data.eventId);
+  if (!spec) return res.status(404).json({ error: 'Event not found.' });
+  if (!spec.subjects.includes(data.subject))
+    return res.status(400).json({ error: 'That subject is not available for this event.' });
+  if (data.subject === 'mix' && !data.mix)
+    return res.status(400).json({ error: 'Set your mix before starting.' });
+  const run: EventRunRecord = {
+    id: randomUUID(),
+    userId: res.locals.user.id,
+    eventId: spec.id,
+    subject: data.subject,
+    mix: data.subject === 'mix' ? data.mix! : null,
+    plan: data.plan,
+    seed: randomBytes(4).readUInt32BE() & 0x7fffffff,
+    blind: data.blind,
+    day: 0,
+    decisions: [],
+    reflection: '',
+    summary: null,
+    createdAt: new Date().toISOString(),
+    completedAt: null,
+  };
+  await createRun(run);
+  res.json(runView(run));
+});
+app.get('/api/events/runs', async (_req, res) => {
+  const runs = await listRuns(res.locals.user.id);
+  res.json(
+    runs.map((r) => ({
+      id: r.id,
+      eventId: r.eventId,
+      eventName: findEvent(r.eventId)?.name ?? r.eventId,
+      subject: r.subject,
+      createdAt: r.createdAt,
+      done: r.day >= TOTAL_DAYS,
+      summary: r.summary,
+    })),
+  );
+});
+app.get('/api/events/runs/:id', async (req, res) => {
+  const run = await getRun(z.string().uuid().parse(req.params.id), res.locals.user.id);
+  if (!run) return res.status(404).json({ error: 'Run not found.' });
+  res.json(runView(run));
+});
+app.post('/api/events/runs/:id/decide', async (req, res) => {
+  const { action, day } = z
+    .object({ action: z.enum(['hold', 'trim', 'add', 'exit']), day: z.number().int().min(0) })
+    .strict()
+    .parse(req.body);
+  const run = await getRun(z.string().uuid().parse(req.params.id), res.locals.user.id);
+  if (!run) return res.status(404).json({ error: 'Run not found.' });
+  if (run.day >= TOTAL_DAYS)
+    return res.status(409).json({ error: 'This run is already finished.' });
+  // Each decision names its checkpoint, so a double click can't skip ahead a step.
+  if (run.day !== day)
+    return res.status(409).json({ error: 'That checkpoint was already decided. Refresh the run.' });
+  const expectedDay = run.day;
+  run.decisions = [...run.decisions, { day: run.day, action }];
+  run.day = Math.min(run.day + CHECKPOINT_EVERY, TOTAL_DAYS);
+  if (run.day >= TOTAL_DAYS) {
+    const spec = findEvent(run.eventId)!;
+    const sc = scenario(spec, run.seed, run.mix);
+    const { values } = replay(sc.subject, run.decisions, TOTAL_DAYS);
+    run.summary = summarise(spec, sc.subject, sc.benchmark, values, run.decisions, run.plan);
+    run.completedAt = new Date().toISOString();
+  }
+  if (!(await advanceRun(run, expectedDay)))
+    return res.status(409).json({ error: 'That checkpoint was already decided. Refresh the run.' });
+  res.json(runView(run));
+});
+app.post('/api/events/runs/:id/reflection', async (req, res) => {
+  const { text } = z
+    .object({ text: z.string().trim().max(1000) })
+    .strict()
+    .parse(req.body);
+  const ok = await saveReflection(z.string().uuid().parse(req.params.id), res.locals.user.id, text);
+  if (!ok) return res.status(404).json({ error: 'Finish the run before saving a reflection.' });
+  res.json({ ok: true });
 });
 // Public: synthetic practice markets (models, never real prices).
 app.get('/api/lab/market', (req, res) => {

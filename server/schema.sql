@@ -19,3 +19,5 @@ CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, appli
 INSERT INTO schema_migrations(version) VALUES(1) ON CONFLICT DO NOTHING;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS age_confirmed_at TIMESTAMPTZ;
 ALTER TABLE attempts ADD COLUMN IF NOT EXISTS confidence INTEGER CHECK (confidence BETWEEN 0 AND 100);
+CREATE TABLE IF NOT EXISTS event_runs (id UUID PRIMARY KEY, user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, event_id TEXT NOT NULL, subject TEXT NOT NULL CHECK(subject IN ('index','mix','stock')), mix JSONB, plan JSONB NOT NULL, seed INTEGER NOT NULL, blind BOOLEAN NOT NULL DEFAULT FALSE, day INTEGER NOT NULL DEFAULT 0, decisions JSONB NOT NULL DEFAULT '[]', reflection TEXT NOT NULL DEFAULT '', summary JSONB, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), completed_at TIMESTAMPTZ);
+CREATE INDEX IF NOT EXISTS event_runs_user ON event_runs(user_id, created_at);
