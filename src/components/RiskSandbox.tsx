@@ -59,7 +59,11 @@ export function RiskSandbox() {
       drawdown: median(drawdowns),
     };
   }, [outcomes, risk, winRate]);
-  const edge = (winRate / 100) * payoff - (1 - winRate / 100);
+  // Work in whole percentages so a 40% win rate gives an edge of exactly zero.
+  const edge = (winRate * payoff - (100 - winRate)) / 100;
+  // Kelly fraction: the bet size that grows an account fastest. Around twice this, growth stops.
+  const kelly = edge / payoff;
+  const kellyPct = `${Math.round(kelly * 1000) / 10}%`;
   const lo = Math.log10(2000);
   const hi = Math.log10(2000000);
   const x = (t: number) => 50 + (t / TRADES) * 640;
@@ -159,11 +163,13 @@ export function RiskSandbox() {
         <p className="sandbox-verdict">
           {edge <= 0
             ? 'With no edge, sizing can’t save you. Smaller bets only lose more slowly.'
-            : risk <= 0.02
-              ? 'Small bets let the edge show up. Slow, but most traders get there.'
-              : risk <= 0.05
-                ? 'Faster growth for some, but drawdowns get deep enough to make people quit.'
-                : 'Same winning strategy, but oversized bets turn it into a lottery. Many accounts get wrecked.'}
+            : risk <= kelly / 2
+              ? `Well under the Kelly limit of ${kellyPct}, the size that grows an account fastest. The edge shows up and drawdowns stay survivable.`
+              : risk <= kelly
+                ? `Close to the Kelly limit of ${kellyPct}, the size that grows an account fastest. Near-top growth, but drawdowns get deep enough to make people quit.`
+                : risk <= kelly * 2
+                  ? `Past the Kelly limit of ${kellyPct}. Growth tops out there, so betting more only deepens the drawdowns.`
+                  : `More than double the Kelly limit of ${kellyPct}. The typical account shrinks even with a winning strategy: oversized bets turn an edge into a lottery.`}
         </p>
         <p className="sandbox-note">
           <ShieldCheck size={13} /> Illustrative model with {inr(START)} of virtual money per

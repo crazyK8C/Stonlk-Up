@@ -11,6 +11,8 @@ The visual plan lives at [strategy-lab-plan.html](strategy-lab-plan.html). Open 
 | [03-simulation-design.md](03-simulation-design.md) | How the Strategy Lab engine should work: data, scenarios, scoring |
 | [04-learning-science.md](04-learning-science.md) | Evidence behind the guided techniques, and how to apply each one |
 | [05-regulation-and-data.md](05-regulation-and-data.md) | SEBI, gaming law, child data protection and data licensing constraints |
+| [06-risk-calculations.md](06-risk-calculations.md) | The risk maths retail investors need, from simple trade arithmetic (max loss, risk–reward, break-even win rate) to sizing, drawdowns, Kelly and leverage |
+| [07-portfolio-correlation.md](07-portfolio-correlation.md) | Correlation and diversification: the formulas, how correlations shift in crises, fund overlap, and the misconceptions to design against |
 
 ## Decisions this research supports
 
@@ -24,6 +26,8 @@ The visual plan lives at [strategy-lab-plan.html](strategy-lab-plan.html). Open 
 8. **Ship a short calibration module early.** Under an hour of probability training improved forecast accuracy by 6–11%.
 9. **Use story and social play, not just points.** In gamification studies, game fiction and social interaction were what moved behaviour.
 10. **Streaks amplify value, they don't create it.** Duolingo's growth came from current-user retention. Build a Lab people want to return to first.
+11. **Teach Kelly as a ceiling, not a target.** In a biased-coin experiment, 28% of mostly finance-trained players went bust despite a known 60% edge. Size from the loss you accept, and show that betting far past Kelly shrinks the account. Watch for simulations making users bolder: one study found risk simulations raised risk-taking.
+12. **Teach diversification as "how many independent bets", not "how many holdings".** People neglect correlation and split money evenly. 30 stocks at 0.3 correlation are about 3 independent bets, and correlations rise in crashes. Correlation lessons need a multi-asset generator.
 
 ## Open questions (need a person, not a search)
 
