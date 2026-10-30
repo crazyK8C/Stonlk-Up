@@ -184,12 +184,12 @@ export interface Reveal {
   source: Question['source'];
 }
 export const levels = [
-  'Market Baby',
-  'Market Rookie',
-  'Risk Taker',
-  'News Trader',
-  'Quant Wannabe',
-  'Portfolio Goblin',
-  'Market Psychopath',
-  'Quant Overlord',
+  'Foundations',
+  'Apprentice',
+  'Risk Aware',
+  'Event Reader',
+  'Quant Fundamentals',
+  'Portfolio Builder',
+  'Behavioural Edge',
+  'Strategist',
 ];

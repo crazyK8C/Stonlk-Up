@@ -98,7 +98,7 @@ export const questions: ContentQuestion[] = [
   ),
   q(
     'fed-2020',
-    'The Fed hits the emergency button.',
+    'The Fed makes an emergency rate cut.',
     'March 15, 2020. Amid the COVID crisis, the Federal Reserve announces an emergency rate cut. Where did it set the target range?',
     ['0–0.25%', '2–2.25%', '5–5.25%', 'Rates stayed unchanged'],
     0,
@@ -118,7 +118,7 @@ export const questions: ContentQuestion[] = [
   ),
   q(
     'return',
-    'Your first green candle.',
+    'Calculating a simple return.',
     'You invest ₹10,000. Your position rises 8%. Before fees and taxes, what is your profit?',
     ['₹80', '₹800', '₹1,080', '₹8,000'],
     1,
@@ -145,7 +145,7 @@ export const questions: ContentQuestion[] = [
   ),
   q(
     'ev',
-    'The odds are in your favor. Maybe.',
+    'The expected value of a bet.',
     'A modeled trade has a 60% chance of +10% and a 40% chance of −5%. What is its expected return?',
     ['+2%', '+4%', '+6%', '+10%'],
     1,
@@ -155,7 +155,7 @@ export const questions: ContentQuestion[] = [
   ),
   q(
     'diversify',
-    'All your eggs. One very fragile basket.',
+    'Concentration versus diversification.',
     'Your entire portfolio is in one airline. Which change most directly reduces company-specific risk?',
     [
       'Buy more of that airline',
@@ -190,7 +190,7 @@ export const questions: ContentQuestion[] = [
   ),
   q(
     'fomo',
-    'Everyone is buying. Including your barber.',
+    'A stock goes viral. What does it prove?',
     'A stock doubles after going viral. You have no information about its cash flows or valuation. What does the viral trend prove?',
     [
       'It will double again',
@@ -205,7 +205,7 @@ export const questions: ContentQuestion[] = [
   ),
   q(
     'compound',
-    'Let your gains have tiny gain babies.',
+    'How compounding works.',
     '₹10,000 grows at a hypothetical 10% annually for two years. With reinvestment, what is the final value?',
     ['₹10,200', '₹11,000', '₹12,000', '₹12,100'],
     3,
@@ -242,7 +242,7 @@ export const questions: ContentQuestion[] = [
 questions.push(
   q(
     'apple-buyback',
-    'Apple brings a very big wallet.',
+    'Apple announces a record buyback.',
     'May 2, 2024. Apple announces authorization for up to $110 billion in share repurchases. If shares are actually repurchased and net income stays flat, what happens to earnings per share?',
     [
       'EPS generally increases',
@@ -267,7 +267,7 @@ questions.push(
   ),
   q(
     'gamestop',
-    'The internet enters the trading floor.',
+    'Retail traders squeeze a heavily shorted stock.',
     'January 2021. GameStop draws intense buying interest and volatility. Which situation can force an investor with a short position to buy shares?',
     [
       'The company changes its logo',
@@ -292,7 +292,7 @@ questions.push(
   ),
   q(
     'lehman',
-    'One bank falls. The room gets quiet.',
+    'A major investment bank fails.',
     'September 2008. Lehman Brothers files for bankruptcy. What concern is most likely to increase among institutions lending to one another?',
     [
       'Every loan is now risk-free',

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   ArrowUpRight,
@@ -25,27 +25,25 @@ import {
   CircleHelp,
   Play,
   Trophy,
-  Cat,
   CheckCircle2,
   FlaskConical,
   House,
 } from 'lucide-react';
-import type {
-  Profile,
-  Question,
-  Reveal,
-  Difficulty,
-  Mode,
-  Attempt,
-  ReactionType,
-} from '../shared/types';
+import type { Profile, Question, Reveal, Difficulty, Mode, Attempt } from '../shared/types';
 import { confidenceLevels, levels } from '../shared/types';
-import './styles.css';
+import './index.css';
 import { api } from './lib/api';
-import { Mascot, MiniChart } from './components/GameArt';
+import { MiniChart } from './components/GameArt';
+import { HomeBento } from './components/HomeBento';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { LogoMark, Wordmark } from './components/Logo';
+import { Splash, SPLASH_KEY } from './components/Splash';
+import { AnimatePresence, motion } from 'motion/react';
+import { cn } from '@/lib/utils';
 import { RiskSandbox } from './components/RiskSandbox';
 import { MarketLab } from './components/MarketLab';
-import { StudyTracks } from './components/StudyTracks';
+import { StudyLuxe } from './components/StudyLuxe';
 import { EventLab } from './components/EventLab';
 import { GapTracker } from './components/GapTracker';
 type View = 'play' | 'study' | 'practice' | 'lab' | 'stats' | 'guide';
@@ -76,15 +74,26 @@ function App() {
     [reveal, setReveal] = useState<Reveal | null>(null),
     [busy, setBusy] = useState(false),
     [complete, setComplete] = useState(false),
-    [reaction, setReaction] = useState<{ url: string; message: string; type: ReactionType } | null>(
-      null,
-    ),
     [pending, setPending] = useState<Mode | null>(null),
-    [menu, setMenu] = useState(false),
     [time, setTime] = useState(Date.now()),
     [storage, setStorage] = useState(''),
     [historyFilter, setHistoryFilter] = useState('All'),
-    [statsDimension, setStatsDimension] = useState<'category' | 'difficulty'>('category');
+    [statsDimension, setStatsDimension] = useState<'category' | 'difficulty'>('category'),
+    [splash, setSplash] = useState(() => {
+      try {
+        return sessionStorage.getItem(SPLASH_KEY) !== '1';
+      } catch {
+        return true;
+      }
+    }),
+    finishSplash = useCallback(() => {
+      setSplash(false);
+      try {
+        sessionStorage.setItem(SPLASH_KEY, '1');
+      } catch {
+        /* storage unavailable: the intro may replay next visit */
+      }
+    }, []);
   useEffect(() => {
     api<{ storage: string }>('/health')
       .then((v) => setStorage(v.storage))
@@ -96,11 +105,6 @@ function App() {
     const interval = setInterval(() => setTime(Date.now()), 1000);
     return () => clearInterval(interval);
   }, []);
-  useEffect(() => {
-    if (!reaction) return;
-    const t = setTimeout(() => setReaction(null), 4500);
-    return () => clearTimeout(t);
-  }, [reaction]);
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [view, mode, question?.id]);
@@ -245,9 +249,6 @@ function App() {
       });
       setReveal(r);
       setPlayer(r.profile);
-      api<{ url: string; message: string; type: ReactionType }>('/reactions/' + r.reaction)
-        .then(setReaction)
-        .catch(() => {});
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -257,7 +258,6 @@ function App() {
   function navigate(v: View) {
     setView(v);
     setMode(null);
-    setMenu(false);
     setError('');
   }
   const xp = player?.xp ?? 0,
@@ -302,1290 +302,945 @@ function App() {
     'Psychology',
   ];
   return (
-    <div className="app-shell">
-      <aside className={'sidebar ' + (menu ? 'open' : '')}>
-        <a
-          className="brand"
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            navigate('play');
-          }}
-        >
-          <span className="brand-mark">
-            <TrendingUp size={25} />
-          </span>
-          stonk<span className="brand-up">up</span>
-          <span className="brand-dot">↗</span>
-        </a>
-        <div className="side-caption">YOUR NEXT BAD DECISION STARTS HERE</div>
-        <div className="nav-label">THE PLAYGROUND</div>
-        <nav>
-          {nav.map((n) => (
-            <button
-              key={n.id}
-              className={view === n.id ? 'nav-item active' : 'nav-item'}
-              onClick={() => navigate(n.id)}
+    <div className="min-h-screen bg-background text-foreground">
+      <AnimatePresence>{splash && <Splash onDone={finishSplash} />}</AnimatePresence>
+      <div className="flex min-h-screen flex-col">
+        <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-background/70 backdrop-blur-xl">
+          <div className="mx-auto flex h-16 w-full max-w-[1400px] items-center gap-4 px-4 md:px-8">
+            <a
+              className="flex shrink-0 items-center gap-2.5"
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('play');
+              }}
             >
-              <n.icon size={19} />
-              {n.label}
-              {n.id === 'play' && <span className="nav-live" />}
-            </button>
-          ))}
-        </nav>
-        <div className="side-divider" />
-        <button
-          className={'nav-item ' + (view === 'guide' ? 'active' : '')}
-          onClick={() => navigate('guide')}
-        >
-          <CircleHelp size={19} />
-          How to play
-        </button>
-        <div className="sidebar-bottom">
-          <div className="cat-note">
-            <Cat size={28} />
-            <p>
-              Bad predictions.
-              <br />
-              <strong>Good character development.</strong>
-            </p>
-          </div>
-          <div className="side-profile">
-            <div className="avatar">
-              {player ? player.name.slice(0, 1).toUpperCase() : <Cat size={21} />}
-            </div>
-            <div>
-              <strong>{player?.name ?? 'Future market legend'}</strong>
-              <span>
-                {levels[level - 1]} · Level {level}
+              <LogoMark className="size-8" />
+              <Wordmark />
+            </a>
+            <nav
+              className="mx-auto hidden items-center gap-1 rounded-full border border-white/[0.07] bg-card/60 p-1 shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset] md:flex"
+              aria-label="Main navigation"
+            >
+              {nav.map((n) => {
+                const active = view === n.id && !mode;
+                return (
+                  <button
+                    key={n.id}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'relative flex h-9 items-center gap-2 rounded-full px-4 text-sm transition-colors',
+                      active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+                    )}
+                    onClick={() => navigate(n.id)}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="nav-pill"
+                        className="absolute inset-0 rounded-full bg-secondary shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset]"
+                        transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                      />
+                    )}
+                    <n.icon className={cn('relative size-4', active && 'text-primary')} />
+                    <span className="relative">{n.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+            <div className="ml-auto flex items-center gap-2 md:ml-0">
+              <span className="hidden h-8 items-center gap-1.5 rounded-full border border-white/[0.07] bg-card px-3 font-mono text-xs lg:flex">
+                <Flame className="size-3.5 text-warn" />
+                {player?.streak ?? 0}
+                <span className="text-muted-foreground">streak</span>
               </span>
-            </div>
-            {player ? (
-              <button
-                aria-label="Sign out"
-                className="icon-btn"
-                onClick={async () => {
-                  await api('/auth/logout', {});
-                  setPlayer(null);
-                  setMode(null);
-                }}
+              <span
+                className="flex h-8 items-center gap-1.5 rounded-full border border-white/[0.07] bg-card px-3 font-mono text-xs"
+                title={`Level ${level} · ${levels[level - 1]}`}
               >
-                <LogOut size={16} />
-              </button>
-            ) : (
-              <button className="icon-btn" aria-label="Sign in" onClick={() => setAuth(true)}>
-                <ArrowRight size={16} />
-              </button>
-            )}
-          </div>
-        </div>
-      </aside>
-      <div className="workspace">
-        <header className="topbar">
-          <div className="topbar-left">
-            <button
-              className="mobile-menu icon-btn"
-              aria-label="Toggle navigation"
-              onClick={() => setMenu(!menu)}
-            >
-              <Menu />
-            </button>
-            <span className="breadcrumb">
-              The playground <ChevronRight size={13} />
-              <strong>
-                {mode
-                  ? mode === 'daily'
-                    ? 'Daily challenge'
-                    : 'Unlimited practice'
-                  : viewTitle[view]}
-              </strong>
-            </span>
-          </div>
-          <div className="topbar-stats">
-            <span className="streak">
-              <Flame size={18} />
-              {player?.streak ?? 0}
-              <span className="stat-unit">day streak</span>
-            </span>
-            <span className="coins">
-              <Coins size={18} />
-              {player?.coins ?? 0}
-            </span>
-            <span className="xp">
-              <Zap size={17} />
-              {xp.toLocaleString()} XP
-            </span>
-            <button
-              className="top-avatar"
-              aria-label={player ? 'Open player stats' : 'Create an account'}
-              onClick={() => (player ? navigate('stats') : setAuth(true))}
-            >
-              {player?.name.slice(0, 1).toUpperCase() ?? 'K'}
-            </button>
+                <Zap className="size-3.5 text-primary" />
+                {xp.toLocaleString()}
+                <span className="text-muted-foreground">XP · L{level}</span>
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 rounded-full"
+                aria-label="How it works"
+                onClick={() => navigate('guide')}
+              >
+                <CircleHelp />
+              </Button>
+              {player ? (
+                <>
+                  <button
+                    className="grid size-8 place-items-center rounded-full border border-white/[0.08] bg-secondary text-xs font-semibold"
+                    aria-label="Open Reflect"
+                    title={player.name}
+                    onClick={() => navigate('stats')}
+                  >
+                    {player.name.slice(0, 1).toUpperCase()}
+                  </button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hidden size-8 rounded-full sm:inline-flex"
+                    aria-label="Sign out"
+                    onClick={async () => {
+                      await api('/auth/logout', {});
+                      setPlayer(null);
+                      setMode(null);
+                    }}
+                  >
+                    <LogOut />
+                  </Button>
+                </>
+              ) : (
+                <Button size="sm" className="rounded-full px-4" onClick={() => setAuth(true)}>
+                  Sign in
+                </Button>
+              )}
+            </div>
           </div>
         </header>
-        <main>
-          {error && !auth && (
-            <div className="error-banner" role="alert">
-              {error}
-              <button onClick={() => setError('')} aria-label="Dismiss error">
-                <X size={15} />
-              </button>
-            </div>
-          )}
-          {!mode && view === 'play' && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">
-                    <span className="green-dot" /> THE MARKET IS OPEN. YOUR BRAIN SHOULD BE TOO.
-                  </div>
-                  <h1>
-                    Less scrolling. <span>More stonking.</span>
-                  </h1>
-                  <p>Real-world events. Questionable instincts. A smarter you.</p>
-                </div>
-                <div className="today-date">
-                  {new Date(time).toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                  <span>LET’S MAKE SOME MOVES</span>
-                </div>
+        <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 pb-28 pt-6 md:px-8 md:pb-12 md:pt-8">
+          <motion.div
+            key={mode ? 'mode-' + mode : view}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {error && !auth && (
+              <div className="error-banner" role="alert">
+                {error}
+                <button onClick={() => setError('')} aria-label="Dismiss error">
+                  <X size={15} />
+                </button>
               </div>
-              <section className="feature-grid">
-                <div className="daily-card">
-                  <div className="daily-background">
-                    <MiniChart color="#728d59" large />
-                  </div>
-                  <div className="daily-copy">
-                    <div className="live-pill">
-                      <span /> DAILY CHALLENGE <span className="pill-divider">/</span> VOL.{' '}
-                      {new Date(time).getUTCDate().toString().padStart(2, '0')}
-                    </div>
-                    <h2>
-                      The market moved.
-                      <br />
-                      Did you see it coming?
-                    </h2>
-                    <p>
-                      10 events. 10 predictions. One chance to prove
-                      <br className="desktop-break" /> your inner market genius isn’t just a lucky
-                      cat.
-                    </p>
-                    <div className="daily-details">
-                      <span>
-                        <Target size={15} />
-                        10 questions
-                      </span>
-                      <span>
-                        <Clock3 size={15} />
-                        ~5 minutes
-                      </span>
-                      <span>
-                        <Zap size={15} />
-                        Up to 1,000 XP
-                      </span>
-                    </div>
+            )}
+            {!mode && view === 'play' && (
+              <HomeBento
+                player={player}
+                todayCount={today.length}
+                countdown={countdown}
+                busy={boot || busy}
+                onStartDaily={() => loadRound('daily')}
+                onNavigate={(to) => navigate(to)}
+                onSignIn={() => setAuth(true)}
+              />
+            )}
+            {mode && (
+              <div className="game-page">
+                <div className="game-top">
+                  <button
+                    className="text-link"
+                    onClick={() => {
+                      setMode(null);
+                      setError('');
+                    }}
+                  >
+                    <ArrowLeft size={16} />
+                    Back to playground
+                  </button>
+                  <span className="game-mode">
+                    <span className="green-dot" />
+                    {mode === 'daily' ? 'DAILY CHALLENGE' : 'UNLIMITED PRACTICE'}
+                  </span>
+                  {mode === 'unlimited' && category && (
                     <button
-                      className="primary-btn"
-                      disabled={boot || busy}
-                      onClick={() => loadRound('daily')}
-                    >
-                      {today.length === 10
-                        ? 'View your results'
-                        : today.length
-                          ? 'Continue challenge'
-                          : 'Let’s play'}
-                      <ArrowUpRight size={19} />
-                    </button>
-                    <div className="reset-note">
-                      <Clock3 size={13} /> New challenge in <strong>{countdown}</strong>
-                    </div>
-                  </div>
-                  <div className="daily-art">
-                    <span className="floating-tag tag-up">↗ BIG BRAIN ENERGY</span>
-                    <Mascot />
-                    <span className="floating-tag tag-down">WALL STREET? MEOW STREET.</span>
-                    <span className="art-spark spark-one">✦</span>
-                    <span className="art-spark spark-two">✧</span>
-                  </div>
-                </div>
-                <div className="level-card">
-                  <div className="card-overline">
-                    YOUR CHARACTER ARC <Sparkles size={16} />
-                  </div>
-                  <div className="level-avatar">
-                    <Cat size={42} strokeWidth={1.3} />
-                    <span>{level}</span>
-                  </div>
-                  <div className="level-name">{levels[level - 1]}</div>
-                  <p>
-                    {xp === 0
-                      ? 'Every legend starts with a guess.'
-                      : 'Your instincts are getting sharper.'}
-                  </p>
-                  <div className="level-progress-label">
-                    <span>LEVEL {level}</span>
-                    <strong>{level === 8 ? 'MAX LEVEL' : `${xp % 1000} / 1,000 XP`}</strong>
-                  </div>
-                  <div className="progress-track">
-                    <span style={{ width: level === 8 ? '100%' : `${(xp % 1000) / 10}%` }} />
-                  </div>
-                  <div className="level-next">
-                    <Lock size={13} />
-                    {level === 8 ? 'You reached the summit' : `Next up: ${levels[level]}`}
-                  </div>
-                  <button className="text-link" onClick={() => navigate('study')}>
-                    Explore your learning path
-                    <ArrowRight size={15} />
-                  </button>
-                </div>
-              </section>
-              <div className="section-heading">
-                <div>
-                  <h3>
-                    Pick your playground<span>YOUR MONEY IS SAFE. YOUR EGO, LESS SO.</span>
-                  </h3>
-                </div>
-                <span className="muted small">Learn by doing. Lose absolutely nothing.</span>
-              </div>
-              <section className="mode-grid">
-                <button className="mode-card unlimited" onClick={() => loadRound('unlimited')}>
-                  <div className="mode-top">
-                    <span className="mode-icon purple">
-                      <Infinity size={24} />
-                    </span>
-                    <span className="mode-pill">NO LIMITS. NO PRESSURE.</span>
-                    <ArrowUpRight size={18} />
-                  </div>
-                  <h3>Unlimited mode</h3>
-                  <p>
-                    Keep guessing. Keep learning.
-                    <br />
-                    The market has plenty of plot twists.
-                  </p>
-                  <div className="mode-bottom">
-                    <span>4 difficulty levels</span>
-                    <span className="play-circle">
-                      <Play size={13} fill="currentColor" />
-                    </span>
-                  </div>
-                  <div className="decorative-loop">∞</div>
-                </button>
-                <button className="mode-card path-card" onClick={() => navigate('study')}>
-                  <div className="mode-top">
-                    <span className="mode-icon green">
-                      <BookOpen size={23} />
-                    </span>
-                    <span className="mode-pill">SMALL STEPS. BIG BRAIN.</span>
-                    <ArrowUpRight size={18} />
-                  </div>
-                  <h3>From noob to know-it-all</h3>
-                  <p>
-                    A learning path that levels up
-                    <br />
-                    with you. Math arrives fashionably late.
-                  </p>
-                  <div className="mode-bottom">
-                    <span>8 levels to conquer</span>
-                    <div className="step-dots">
-                      <i />
-                      <i />
-                      <i />
-                      <i />
-                      <i />
-                    </div>
-                  </div>
-                </button>
-                <button className="mode-card stats-card" onClick={() => navigate('stats')}>
-                  <div className="mode-top">
-                    <span className="mode-icon orange">
-                      <BarChart3 size={24} />
-                    </span>
-                    <span className="mode-pill">RECEIPTS INCLUDED.</span>
-                    <ArrowUpRight size={18} />
-                  </div>
-                  <h3>Meet your market brain</h3>
-                  <p>
-                    Find your strengths. Spot your blind
-                    <br />
-                    spots. Give your future self a head start.
-                  </p>
-                  <div className="mode-bottom">
-                    <span>Your prediction history</span>
-                    <div className="tiny-bars">
-                      <i />
-                      <i />
-                      <i />
-                      <i />
-                      <i />
-                    </div>
-                  </div>
-                </button>
-              </section>
-              <section className="bottom-grid">
-                <div className="mission-card">
-                  <div className="section-heading compact">
-                    <h3>Your daily side quests</h3>
-                    <span className="muted small">A LITTLE PROGRESS GOES A LONG WAY</span>
-                  </div>
-                  {[
-                    {
-                      title: 'Show up. Make a prediction.',
-                      desc: 'Complete your first daily question',
-                      value: today.length ? 1 : 0,
-                      total: 1,
-                      icon: Target,
-                      reward: '+100 XP*',
-                    },
-                    {
-                      title: 'Trust the process, not the hype.',
-                      desc: 'Get 3 predictions right today',
-                      value: today.filter((a) => a.correct).length,
-                      total: 3,
-                      icon: CheckCircle2,
-                      reward: '3 good calls',
-                    },
-                    {
-                      title: 'Finish what you stonked.',
-                      desc: 'Complete all 10 daily questions',
-                      value: today.length,
-                      total: 10,
-                      icon: Flame,
-                      reward: 'Build your streak',
-                    },
-                  ].map((m) => (
-                    <div className="mission" key={m.title}>
-                      <span className={'mission-icon ' + (m.value >= m.total ? 'done' : '')}>
-                        <m.icon size={19} />
-                      </span>
-                      <div className="mission-text">
-                        <strong>{m.title}</strong>
-                        <span>{m.desc}</span>
-                      </div>
-                      <span className="mission-reward">{m.reward}</span>
-                      <div className="mission-meter">
-                        <span>
-                          {Math.min(m.value, m.total)}/{m.total}
-                        </span>
-                        <div className="progress-track">
-                          <span style={{ width: `${Math.min(m.value / m.total, 1) * 100}%` }} />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="mission-footnote">
-                    *For a correct daily prediction. Side quests track progress; no bonus XP.
-                  </div>
-                </div>
-                <div className="wisdom-card">
-                  <span className="card-overline">
-                    <span>✳</span> A LITTLE MARKET WISDOM
-                  </span>
-                  <blockquote>
-                    “Being right once is luck. Understanding why is how you get better.”
-                  </blockquote>
-                  <p>— The Meow Street trading desk</p>
-                  <div className="wisdom-bottom">
-                    <span>Patience is a position, too.</span>
-                    <BookOpen size={18} />
-                  </div>
-                </div>
-              </section>
-              <div className="bottom-tagline">
-                <ShieldCheck size={14} />
-                <span>Real lessons. Virtual stakes. Zero financial advice.</span>
-                <span className="cat-signature">Built for curious humans. Approved by cats.</span>
-              </div>
-            </>
-          )}
-          {mode && (
-            <div className="game-page">
-              <div className="game-top">
-                <button
-                  className="text-link"
-                  onClick={() => {
-                    setMode(null);
-                    setError('');
-                  }}
-                >
-                  <ArrowLeft size={16} />
-                  Back to playground
-                </button>
-                <span className="game-mode">
-                  <span className="green-dot" />
-                  {mode === 'daily' ? 'DAILY CHALLENGE' : 'UNLIMITED PRACTICE'}
-                </span>
-                {mode === 'unlimited' && category && (
-                  <button
-                    className="category-chip"
-                    aria-label={`Practising ${category} questions. Clear the category filter.`}
-                    onClick={() => {
-                      setCategory(null);
-                      setQuestion(null);
-                      setReveal(null);
-                    }}
-                  >
-                    {category} <X size={13} />
-                  </button>
-                )}
-                {mode === 'unlimited' && !category && (
-                  <select
-                    aria-label="Difficulty"
-                    value={difficulty}
-                    onChange={(e) => {
-                      setDifficulty(e.target.value as Difficulty);
-                      setQuestion(null);
-                      setReveal(null);
-                    }}
-                  >
-                    {['Beginner', 'Intermediate', 'Advanced', 'Quant'].map((d) => (
-                      <option key={d}>{d}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              {mode === 'daily' && (
-                <div className="round-progress">
-                  {Array.from({ length: 10 }, (_, i) => {
-                    const attempt = player?.attempts.find(
-                      (a) =>
-                        a.questionId === daily?.questions[i]?.id &&
-                        a.day === daily?.day &&
-                        a.mode === 'daily',
-                    );
-                    return (
-                      <span
-                        key={i}
-                        className={
-                          attempt
-                            ? attempt.correct
-                              ? 'passed'
-                              : 'missed'
-                            : daily?.questions[i]?.id === question?.id
-                              ? 'current'
-                              : ''
-                        }
-                      >
-                        {attempt ? <Check size={13} /> : i + 1}
-                      </span>
-                    );
-                  })}
-                  <span className="round-count">{today.length}/10 complete</span>
-                </div>
-              )}
-              {busy && !question && !complete && (
-                <div className="loading-card">
-                  <span className="spinner" />
-                  Getting your next market plot twist…
-                </div>
-              )}
-              {!question && !busy && !complete && (
-                <div className="empty-state">
-                  <Infinity size={40} />
-                  <h2>A different kind of challenge.</h2>
-                  <p>{difficulty} practice is ready. Repeated questions earn no extra XP.</p>
-                  <button className="primary-btn" onClick={() => loadRound('unlimited')}>
-                    Deal me a question
-                    <ArrowRight size={18} />
-                  </button>
-                </div>
-              )}
-              {complete && (
-                <div className="completion-card">
-                  <span className="completion-icon">
-                    <Trophy size={44} />
-                  </span>
-                  <div className="eyebrow">DAILY CHALLENGE COMPLETE</div>
-                  <h1>
-                    You showed up.
-                    <br />
-                    <span>The cat respects that.</span>
-                  </h1>
-                  <p>Every prediction is a rep for your market brain.</p>
-                  <div className="result-stats">
-                    <div>
-                      <strong>{today.filter((a) => a.correct).length}/10</strong>
-                      <span>Correct predictions</span>
-                    </div>
-                    <div>
-                      <strong>+{today.reduce((s, a) => s + a.xp, 0)}</strong>
-                      <span>XP earned today</span>
-                    </div>
-                    <div>
-                      <strong>{player?.streak}</strong>
-                      <span>Day streak</span>
-                    </div>
-                  </div>
-                  <button className="primary-btn" onClick={() => loadRound('unlimited')}>
-                    Keep playing
-                    <Infinity size={19} />
-                  </button>
-                  <p className="muted small">
-                    Next daily challenge in {countdown} · resets at 00:00 UTC
-                  </p>
-                </div>
-              )}
-              {question && !complete && (
-                <>
-                  <div className="question-layout">
-                    <section className="question-card">
-                      <div className="question-meta">
-                        <span className="event-pill">
-                          {question.kind === 'historical' ? 'HISTORICAL EVENT' : 'MODEL SCENARIO'}
-                        </span>
-                        <span>
-                          {question.difficulty} <span className="meta-dot">·</span>{' '}
-                          {question.category}
-                        </span>
-                      </div>
-                      <div className="ticker-heading">
-                        <span className="ticker-icon">
-                          <TrendingUp size={22} />
-                        </span>
-                        <div>
-                          <strong>{question.ticker}</strong>
-                          <span>{question.date}</span>
-                        </div>
-                        <span className="question-reward">
-                          <Zap size={14} />
-                          {mode === 'daily' ? '100' : '20'} XP for a first correct answer
-                        </span>
-                      </div>
-                      <h1>{question.title}</h1>
-                      <p className="question-description">{question.description}</p>
-                      <div className="answer-label">
-                        {reveal ? 'YOUR PREDICTION, REVEALED' : 'LOCK IN YOUR PREDICTION'}
-                        <span>{question.format.toUpperCase()}</span>
-                      </div>
-                      <div className="answer-options">
-                        {question.options.map((o, i) => (
-                          <button
-                            key={o.id}
-                            disabled={!!reveal || busy}
-                            className={
-                              'answer-option ' +
-                              (selected === o.id ? 'selected ' : '') +
-                              (reveal && o.id === reveal.correctAnswer
-                                ? 'correct '
-                                : reveal && o.id === selected && !reveal.correct
-                                  ? 'wrong '
-                                  : '')
-                            }
-                            onClick={() => setSelected(o.id)}
-                          >
-                            <span className="answer-letter">{String.fromCharCode(65 + i)}</span>
-                            <span>{o.label}</span>
-                            {reveal && o.id === reveal.correctAnswer ? (
-                              <CheckCircle2 size={19} />
-                            ) : (
-                              <span className="radio-dot" />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                      {!reveal && (
-                        <fieldset className="confidence-picker">
-                          <legend>How sure are you?</legend>
-                          <div className="confidence-options">
-                            {confidenceLevels.map((c) => (
-                              <button
-                                key={c.value}
-                                type="button"
-                                aria-pressed={confidence === c.value}
-                                className={
-                                  'confidence-option ' + (confidence === c.value ? 'selected' : '')
-                                }
-                                disabled={busy}
-                                onClick={() => setConfidence(c.value)}
-                              >
-                                <strong>{c.value}%</strong>
-                                <span>{c.label}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </fieldset>
-                      )}
-                      {!reveal ? (
-                        <div className="lock-row">
-                          <span>
-                            <Lock size={13} />
-                            {confidence === null
-                              ? 'Pick an answer and how sure you are.'
-                              : 'Your first instinct. Your final answer.'}
-                          </span>
-                          <button
-                            className="primary-btn"
-                            onClick={submit}
-                            disabled={selected === null || confidence === null || busy}
-                          >
-                            {busy ? 'Checking…' : 'Lock prediction'}
-                            <Lock size={16} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="locked-confirmation">
-                          <Lock size={13} />
-                          Prediction locked at {confidence}% sure. Your lesson is below.
-                        </div>
-                      )}
-                    </section>
-                    <aside className="game-aside">
-                      <div className="coach-cat">
-                        <Mascot small />
-                        <div className="speech-bubble">
-                          {reveal
-                            ? reveal.correct
-                              ? 'An excellent use of your one brain cell.'
-                              : 'A wrong answer is just a lesson with dramatic timing.'
-                            : 'No real money. Just you, the market, and a suspiciously confident cat.'}
-                        </div>
-                      </div>
-                      <div className="game-tip">
-                        <Sparkles size={18} />
-                        <h4>
-                          {reveal ? 'KNOWLEDGE IS THE REAL RETURN' : 'A TIP FROM THE TRADING DESK'}
-                        </h4>
-                        <p>
-                          {mode === 'daily'
-                            ? 'Finish all 10 to build your streak. Getting a prediction wrong still earns 15 XP for showing up.'
-                            : 'Practice pays 20 XP per first correct question. Replays are for learning, not farming.'}
-                        </p>
-                      </div>
-                      <div className="game-tip subtle">
-                        <ShieldCheck size={16} />
-                        <p>
-                          {question.kind === 'model'
-                            ? 'This is a simplified educational model. Real-world outcomes depend on context and uncertainty.'
-                            : 'This question is grounded in a published historical source. Hindsight is not a prediction superpower.'}
-                        </p>
-                      </div>
-                    </aside>
-                  </div>
-                  {reveal && (
-                    <section
-                      id="answer-reveal"
-                      className={'reveal-card ' + (reveal.correct ? 'win' : 'loss')}
-                      aria-live="polite"
-                    >
-                      <div className="reveal-heading">
-                        <span className="reveal-icon">
-                          {reveal.correct ? <Check size={25} /> : <X size={25} />}
-                        </span>
-                        <div>
-                          <div className="eyebrow">
-                            {reveal.correct
-                              ? 'GOOD CALL, MARKET HUMAN.'
-                              : 'THE MARKET HAD OTHER PLANS.'}
-                          </div>
-                          <h2>
-                            {reveal.correct
-                              ? 'Your prediction checks out.'
-                              : 'Let’s unpack that one.'}
-                          </h2>
-                        </div>
-                        <span className="earned-reward">
-                          +{reveal.xp} XP <span>+{reveal.coins} coins</span>
-                        </span>
-                      </div>
-                      <div className="reveal-body">
-                        <div>
-                          <h4>Here’s why.</h4>
-                          <p>{reveal.explanation}</p>
-                          <a
-                            className="source-link"
-                            href={reveal.source.url}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            {reveal.source.label}
-                            <ExternalLink size={13} />
-                          </a>
-                        </div>
-                        {reveal.chart && (
-                          <div className="reveal-chart">
-                            <MiniChart large values={reveal.chart.values} color="#b5d987" />
-                            <span>{reveal.chart.label}</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="concept-unlock">
-                        <BookOpen size={18} />
-                        <span>
-                          CONCEPT DISCOVERED<strong>{reveal.concept}</strong>
-                        </span>
-                        <CheckCircle2 size={20} />
-                      </div>
-                      <button className="primary-btn next-btn" onClick={() => loadRound(mode!)}>
-                        {mode === 'daily' && today.length === 10
-                          ? 'See my results'
-                          : 'Next market plot twist'}
-                        <ArrowRight size={19} />
-                      </button>
-                    </section>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-          {!mode && view === 'practice' && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">REPS MAKE IT A HABIT</div>
-                  <h1>
-                    Quick reps.
-                    <br />
-                    <span>Honest confidence.</span>
-                  </h1>
-                  <p>
-                    Predict, say how sure you are, then see why. Every answer sharpens your
-                    calibration in Reflect.
-                  </p>
-                </div>
-              </div>
-              <section className="practice-daily content-panel">
-                <div>
-                  <div className="card-overline">DAILY CHALLENGE</div>
-                  <h3>10 events. One shot each.</h3>
-                  <p>
-                    {today.length}/10 done today · new set in <strong>{countdown}</strong>
-                  </p>
-                  <div className="progress-track">
-                    <span style={{ width: `${today.length * 10}%` }} />
-                  </div>
-                </div>
-                <button
-                  className="primary-btn"
-                  disabled={boot || busy}
-                  onClick={() => loadRound('daily')}
-                >
-                  {today.length === 10 ? 'See results' : today.length ? 'Continue' : 'Start'}
-                  <ArrowRight size={18} />
-                </button>
-              </section>
-              <div className="section-heading">
-                <h3>
-                  Unlimited practice<span>REDUCED XP, ONCE PER QUESTION</span>
-                </h3>
-              </div>
-              <div className="practice-grid">
-                {(['Beginner', 'Intermediate', 'Advanced', 'Quant'] as Difficulty[]).map((d, i) => (
-                  <button
-                    key={d}
-                    className="practice-card"
-                    onClick={() =>
-                      loadRound('unlimited', player, { difficulty: d, category: null })
-                    }
-                  >
-                    <span className="practice-level">{'●'.repeat(i + 1)}</span>
-                    <strong>{d}</strong>
-                    <span>
-                      {
-                        [
-                          'First principles',
-                          'Fundamentals + news',
-                          'Risk + probability',
-                          'Math-heavy',
-                        ][i]
-                      }
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <div className="section-heading">
-                <h3>
-                  Practice by topic<span>PAIRS WITH THE STUDY TRACKS</span>
-                </h3>
-              </div>
-              <div className="category-row">
-                {categories.map((c) => (
-                  <button
-                    key={c}
-                    className="category-chip"
-                    onClick={() => loadRound('unlimited', player, { category: c })}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-          {!mode && view === 'study' && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">LEARN IT BEFORE YOU'RE TESTED ON IT</div>
-                  <h1>
-                    Ten skills that matter
-                    <br />
-                    <span>more than stock tips.</span>
-                  </h1>
-                  <p>
-                    Short lessons with a worked example and a quick check. Then practise the topic.
-                  </p>
-                </div>
-                <span className="path-total">
-                  {xp.toLocaleString()}
-                  <small>TOTAL XP EARNED</small>
-                </span>
-              </div>
-              <StudyTracks onPractice={(c) => loadRound('unlimited', player, { category: c })} />
-              <div className="section-heading study-levels-heading">
-                <h3>
-                  Your level path<span>FROM MARKET BABY TO QUANT OVERLORD</span>
-                </h3>
-              </div>
-              <div className="learning-grid">
-                {levels.map((l, i) => (
-                  <button
-                    key={l}
-                    className={
-                      'learning-card ' +
-                      (i + 1 === level
-                        ? 'current-level '
-                        : i + 1 > level
-                          ? 'locked-level'
-                          : 'unlocked-level')
-                    }
-                    onClick={() => {
-                      if (i + 1 <= level) {
-                        setDifficulty(
-                          i < 2
-                            ? 'Beginner'
-                            : i < 4
-                              ? 'Intermediate'
-                              : i < 6
-                                ? 'Advanced'
-                                : 'Quant',
-                        );
-                        setMode('unlimited');
+                      className="category-chip"
+                      aria-label={`Practising ${category} questions. Clear the category filter.`}
+                      onClick={() => {
+                        setCategory(null);
                         setQuestion(null);
                         setReveal(null);
-                        setComplete(false);
-                      }
-                    }}
-                  >
-                    <div className="learning-card-top">
-                      <span>LEVEL {i + 1}</span>
-                      {i + 1 > level ? (
-                        <Lock size={18} />
-                      ) : i + 1 === level ? (
-                        <span className="you-are-here">YOU ARE HERE</span>
-                      ) : (
-                        <CheckCircle2 size={18} />
-                      )}
-                    </div>
-                    <div className="learning-symbol">
-                      {['◉', '↗', '⚡', '✳', '∑', '◈', '◎', '∞'][i]}
-                    </div>
-                    <h3>{l}</h3>
-                    <p>
-                      {
-                        [
-                          'Stocks, supply & demand, bulls & bears',
-                          'Earnings, market cap & company fundamentals',
-                          'Probability, position sizing & drawdowns',
-                          'Rates, inflation & news reactions',
-                          'Expected returns, volatility & Sharpe ratios',
-                          'Diversification, correlation & risk allocation',
-                          'FOMO, fear, greed & behavioral finance',
-                          'Mathematical models & advanced strategies',
-                        ][i]
-                      }
-                    </p>
-                    <div className="learning-bottom">
-                      <span>
-                        {i === 0 ? 'Your journey starts here' : `${i * 1000} XP to unlock`}
-                      </span>
-                      {i + 1 <= level && <ArrowRight size={17} />}
-                    </div>
-                  </button>
-                ))}
-              </div>
-              <p className="muted path-note">
-                Levels track earned XP. Unlimited practice is available at every difficulty from the
-                playground.
-              </p>
-            </>
-          )}
-          {!mode && view === 'stats' && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">REFLECT · YOUR MARKET BRAIN, UNDER THE MICROSCOPE</div>
-                  <h1>
-                    Results swing with luck.
-                    <br />
-                    <span>Process is what you control.</span>
-                  </h1>
-                  <p>Your gaps, your calibration, and the receipts for every prediction.</p>
+                      }}
+                    >
+                      {category} <X size={13} />
+                    </button>
+                  )}
+                  {mode === 'unlimited' && !category && (
+                    <select
+                      aria-label="Difficulty"
+                      value={difficulty}
+                      onChange={(e) => {
+                        setDifficulty(e.target.value as Difficulty);
+                        setQuestion(null);
+                        setReveal(null);
+                      }}
+                    >
+                      {['Beginner', 'Intermediate', 'Advanced', 'Quant'].map((d) => (
+                        <option key={d}>{d}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
-              </div>
-              <div className="stats-overview">
-                {[
-                  {
-                    icon: Target,
-                    label: 'Prediction accuracy',
-                    value: attempts.length ? `${player?.accuracy}%` : '—',
-                  },
-                  { icon: Zap, label: 'Total XP earned', value: xp.toLocaleString() },
-                  {
-                    icon: Flame,
-                    label: 'Completed daily streak',
-                    value: String(player?.streak ?? 0),
-                  },
-                  {
-                    icon: BookOpen,
-                    label: 'Concepts practiced',
-                    value: String(new Set(attempts.map((a) => a.questionId)).size),
-                  },
-                ].map((s) => (
-                  <div className="stat-card" key={s.label}>
-                    <s.icon size={23} />
-                    <strong>{s.value}</strong>
-                    <span>{s.label}</span>
-                  </div>
-                ))}
-              </div>
-              {player && <GapTracker onOpenLab={() => navigate('lab')} />}
-              {!attempts.length ? (
-                <div className="empty-state">
-                  <Target size={42} />
-                  <h2>No predictions. Infinite potential.</h2>
-                  <p>Your stats start with one guess. Let’s give the cat something to judge.</p>
-                  <button className="primary-btn" onClick={() => loadRound('daily')}>
-                    Make my first prediction
-                    <ArrowRight size={18} />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="stats-breakdown">
-                    <div className="content-panel">
-                      <div className="section-heading compact">
-                        <h3>Your strengths & plot twists</h3>
-                        <select
-                          aria-label="Accuracy breakdown"
-                          value={statsDimension}
-                          onChange={(e) =>
-                            setStatsDimension(e.target.value as 'category' | 'difficulty')
+                {mode === 'daily' && (
+                  <div className="round-progress">
+                    {Array.from({ length: 10 }, (_, i) => {
+                      const attempt = player?.attempts.find(
+                        (a) =>
+                          a.questionId === daily?.questions[i]?.id &&
+                          a.day === daily?.day &&
+                          a.mode === 'daily',
+                      );
+                      return (
+                        <span
+                          key={i}
+                          className={
+                            attempt
+                              ? attempt.correct
+                                ? 'passed'
+                                : 'missed'
+                              : daily?.questions[i]?.id === question?.id
+                                ? 'current'
+                                : ''
                           }
                         >
-                          <option value="category">By category</option>
-                          <option value="difficulty">By difficulty</option>
-                        </select>
-                      </div>
-                      {Array.from(
-                        new Set(
-                          attempts.map((a) =>
-                            statsDimension === 'category'
-                              ? a.category
-                              : (a.difficulty ?? 'Beginner'),
-                          ),
-                        ),
-                      ).map((c) => {
-                        const a = attempts.filter(
-                            (a) =>
-                              (statsDimension === 'category'
-                                ? a.category
-                                : (a.difficulty ?? 'Beginner')) === c,
-                          ),
-                          value = Math.round((a.filter((a) => a.correct).length / a.length) * 100);
-                        return (
-                          <div className="category-row" key={c}>
-                            <span>
-                              {c}
-                              <small>{a.length} attempts</small>
-                            </span>
-                            <div className="progress-track">
-                              <span style={{ width: value + '%' }} />
-                            </div>
-                            <strong>{value}%</strong>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="content-panel">
-                      <h3>Practice makes less terrible.</h3>
-                      <p>Your most useful next step is to revisit a concept you missed.</p>
-                      <div className="practice-recommendation">
-                        <Sparkles size={25} />
-                        <strong>
-                          {attempts.filter((a) => !a.correct).at(-1)?.category ??
-                            'Keep your momentum'}
-                        </strong>
-                        <span>
-                          Average response time:{' '}
-                          {Math.round(
-                            attempts.reduce((s, a) => s + a.duration, 0) / attempts.length,
-                          )}
-                          s
+                          {attempt ? <Check size={13} /> : i + 1}
                         </span>
+                      );
+                    })}
+                    <span className="round-count">{today.length}/10 complete</span>
+                  </div>
+                )}
+                {busy && !question && !complete && (
+                  <div className="loading-card">
+                    <span className="spinner" />
+                    Loading the next scenario…
+                  </div>
+                )}
+                {!question && !busy && !complete && (
+                  <div className="empty-state">
+                    <Infinity size={40} />
+                    <h2>Unlimited practice</h2>
+                    <p>{difficulty} practice is ready. Repeated questions earn no extra XP.</p>
+                    <button className="primary-btn" onClick={() => loadRound('unlimited')}>
+                      Start a scenario
+                      <ArrowRight size={18} />
+                    </button>
+                  </div>
+                )}
+                {complete && (
+                  <div className="completion-card">
+                    <span className="completion-icon">
+                      <Trophy size={44} />
+                    </span>
+                    <div className="eyebrow">DAILY CHALLENGE COMPLETE</div>
+                    <h1>
+                      Today’s ten are done.
+                      <br />
+                      <span>Process beats results.</span>
+                    </h1>
+                    <p>Review your calibration in Reflect, or keep practising.</p>
+                    <div className="result-stats">
+                      <div>
+                        <strong>{today.filter((a) => a.correct).length}/10</strong>
+                        <span>Correct predictions</span>
                       </div>
-                      <button className="primary-btn" onClick={() => loadRound('unlimited')}>
-                        Practice again
-                        <ArrowRight size={16} />
-                      </button>
+                      <div>
+                        <strong>+{today.reduce((s, a) => s + a.xp, 0)}</strong>
+                        <span>XP earned today</span>
+                      </div>
+                      <div>
+                        <strong>{player?.streak}</strong>
+                        <span>Day streak</span>
+                      </div>
                     </div>
+                    <button className="primary-btn" onClick={() => loadRound('unlimited')}>
+                      Keep practising
+                      <Infinity size={19} />
+                    </button>
+                    <p className="muted small">
+                      Next daily challenge in {countdown} · resets at 00:00 UTC
+                    </p>
                   </div>
-                  <div className="content-panel calibration-panel">
-                    <div className="section-heading compact">
-                      <h3>How well do you know what you know?</h3>
-                      <span className="muted small">
-                        {player?.calibration.brier === null || !player
-                          ? 'No rated predictions yet'
-                          : `Brier score ${player.calibration.brier.toFixed(2)} · lower is better`}
-                      </span>
-                    </div>
-                    {player && player.calibration.count ? (
-                      <>
-                        <p className="muted small">
-                          When you say you’re a certain percent sure, how often are you right? A
-                          well-calibrated player’s bars land on their markers.
-                        </p>
-                        <div className="calibration-rows">
-                          {player.calibration.buckets.map((b) => (
-                            <div className="calibration-row" key={b.stated}>
-                              <span>{b.stated}% sure</span>
-                              <div
-                                className="calibration-track"
-                                role="img"
-                                aria-label={`When ${b.stated}% sure you were right ${b.hitRate}% of the time across ${b.n} predictions`}
-                              >
-                                <span style={{ width: `${b.hitRate}%` }} />
-                                <i style={{ left: `${b.stated}%` }} />
-                              </div>
-                              <strong>
-                                {b.hitRate}% right <small>({b.n})</small>
-                              </strong>
-                            </div>
-                          ))}
+                )}
+                {question && !complete && (
+                  <>
+                    <div className="question-layout">
+                      <section className="question-card">
+                        <div className="question-meta">
+                          <span className="event-pill">
+                            {question.kind === 'historical' ? 'HISTORICAL EVENT' : 'MODEL SCENARIO'}
+                          </span>
+                          <span>
+                            {question.difficulty} <span className="meta-dot">·</span>{' '}
+                            {question.category}
+                          </span>
                         </div>
-                        <p className="calibration-verdict">
-                          {(() => {
-                            const rated = player.calibration.buckets;
-                            const stated =
-                              rated.reduce((s, b) => s + b.stated * b.n, 0) /
-                              player.calibration.count;
-                            const hit =
-                              rated.reduce((s, b) => s + b.hitRate * b.n, 0) /
-                              player.calibration.count;
-                            if (player.calibration.count < 10)
-                              return `Only ${player.calibration.count} rated prediction${player.calibration.count === 1 ? '' : 's'} so far. Give it at least 10 before reading much into this.`;
-                            if (stated - hit > 10)
-                              return `You tend to be overconfident: you say ${Math.round(stated)}% on average but are right ${Math.round(hit)}% of the time.`;
-                            if (hit - stated > 10)
-                              return `You tend to be underconfident: you're right ${Math.round(hit)}% of the time but only say ${Math.round(stated)}%.`;
-                            return 'Nicely calibrated: your confidence roughly matches how often you’re right.';
-                          })()}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="muted small">
-                        Pick how sure you are before locking each prediction. Your calibration shows
-                        up here.
-                      </p>
-                    )}
-                  </div>
-                  <div className="content-panel history-panel">
-                    <div className="section-heading compact">
-                      <h3>Prediction receipts</h3>
-                      <select
-                        value={historyFilter}
-                        aria-label="Filter prediction history"
-                        onChange={(e) => setHistoryFilter(e.target.value)}
-                      >
-                        <option>All</option>
-                        <option>Correct</option>
-                        <option>Missed</option>
-                      </select>
-                    </div>
-                    {attempts
-                      .filter(
-                        (a) =>
-                          historyFilter === 'All' ||
-                          (historyFilter === 'Correct' ? a.correct : !a.correct),
-                      )
-                      .slice()
-                      .reverse()
-                      .slice(0, 30)
-                      .map((a, i) => (
-                        <div className="history-row" key={i}>
-                          <span
-                            className={
-                              a.correct ? 'history-status correct' : 'history-status wrong'
-                            }
-                          >
-                            {a.correct ? <Check size={17} /> : <X size={17} />}
+                        <div className="ticker-heading">
+                          <span className="ticker-icon">
+                            <TrendingUp size={22} />
                           </span>
                           <div>
-                            <strong>{a.category}</strong>
-                            <span>
-                              {a.questionId.replaceAll('-', ' ')} · {a.mode} ·{' '}
-                              {new Date(a.at).toLocaleDateString()}
-                            </span>
+                            <strong>{question.ticker}</strong>
+                            <span>{question.date}</span>
                           </div>
-                          <span className="history-outcome">
-                            {a.correct ? 'Good call' : 'Lesson learned'}
+                          <span className="question-reward">
+                            <Zap size={14} />
+                            {mode === 'daily' ? '100' : '20'} XP for a first correct answer
                           </span>
-                          <strong>+{a.xp} XP</strong>
                         </div>
-                      ))}
+                        <h1>{question.title}</h1>
+                        <p className="question-description">{question.description}</p>
+                        <div className="answer-label">
+                          {reveal ? 'YOUR PREDICTION, REVEALED' : 'LOCK IN YOUR PREDICTION'}
+                          <span>{question.format.toUpperCase()}</span>
+                        </div>
+                        <div className="answer-options">
+                          {question.options.map((o, i) => (
+                            <button
+                              key={o.id}
+                              disabled={!!reveal || busy}
+                              className={
+                                'answer-option ' +
+                                (selected === o.id ? 'selected ' : '') +
+                                (reveal && o.id === reveal.correctAnswer
+                                  ? 'correct '
+                                  : reveal && o.id === selected && !reveal.correct
+                                    ? 'wrong '
+                                    : '')
+                              }
+                              onClick={() => setSelected(o.id)}
+                            >
+                              <span className="answer-letter">{String.fromCharCode(65 + i)}</span>
+                              <span>{o.label}</span>
+                              {reveal && o.id === reveal.correctAnswer ? (
+                                <CheckCircle2 size={19} />
+                              ) : (
+                                <span className="radio-dot" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                        {!reveal && (
+                          <fieldset className="confidence-picker">
+                            <legend>How sure are you?</legend>
+                            <div className="confidence-options">
+                              {confidenceLevels.map((c) => (
+                                <button
+                                  key={c.value}
+                                  type="button"
+                                  aria-pressed={confidence === c.value}
+                                  className={
+                                    'confidence-option ' +
+                                    (confidence === c.value ? 'selected' : '')
+                                  }
+                                  disabled={busy}
+                                  onClick={() => setConfidence(c.value)}
+                                >
+                                  <strong>{c.value}%</strong>
+                                  <span>{c.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </fieldset>
+                        )}
+                        {!reveal ? (
+                          <div className="lock-row">
+                            <span>
+                              <Lock size={13} />
+                              {confidence === null
+                                ? 'Pick an answer and how sure you are.'
+                                : 'Locked answers are final.'}
+                            </span>
+                            <button
+                              className="primary-btn"
+                              onClick={submit}
+                              disabled={selected === null || confidence === null || busy}
+                            >
+                              {busy ? 'Checking…' : 'Lock prediction'}
+                              <Lock size={16} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="locked-confirmation">
+                            <Lock size={13} />
+                            Prediction locked at {confidence}% sure. Your lesson is below.
+                          </div>
+                        )}
+                      </section>
+                      <aside className="game-aside">
+                        <div className="game-tip">
+                          <Target size={18} />
+                          <h4>
+                            {reveal
+                              ? reveal.correct
+                                ? 'CORRECT'
+                                : 'NOT THIS TIME'
+                              : 'HOW THIS WORKS'}
+                          </h4>
+                          <p>
+                            {reveal
+                              ? reveal.correct
+                                ? 'Check whether your confidence matched. Being right for the wrong reason still counts against calibration.'
+                                : 'Read why before moving on. A miss you understand is worth more than a lucky hit.'
+                              : 'Pick an answer, say how sure you are, then lock it in. No real money is involved.'}
+                          </p>
+                        </div>
+                        <div className="game-tip">
+                          <Sparkles size={18} />
+                          <h4>
+                            {reveal
+                              ? 'KNOWLEDGE IS THE REAL RETURN'
+                              : 'A TIP FROM THE TRADING DESK'}
+                          </h4>
+                          <p>
+                            {mode === 'daily'
+                              ? 'Finish all 10 to build your streak. Getting a prediction wrong still earns 15 XP for showing up.'
+                              : 'Practice pays 20 XP per first correct question. Replays are for learning, not farming.'}
+                          </p>
+                        </div>
+                        <div className="game-tip subtle">
+                          <ShieldCheck size={16} />
+                          <p>
+                            {question.kind === 'model'
+                              ? 'This is a simplified educational model. Real-world outcomes depend on context and uncertainty.'
+                              : 'This question is grounded in a published historical source. Hindsight is not a prediction superpower.'}
+                          </p>
+                        </div>
+                      </aside>
+                    </div>
+                    {reveal && (
+                      <section
+                        id="answer-reveal"
+                        className={'reveal-card ' + (reveal.correct ? 'win' : 'loss')}
+                        aria-live="polite"
+                      >
+                        <div className="reveal-heading">
+                          <span className="reveal-icon">
+                            {reveal.correct ? <Check size={25} /> : <X size={25} />}
+                          </span>
+                          <div>
+                            <div className="eyebrow">
+                              {reveal.correct ? 'CORRECT' : 'NOT THIS TIME'}
+                            </div>
+                            <h2>
+                              {reveal.correct
+                                ? 'Your prediction checks out.'
+                                : 'Here’s what happened.'}
+                            </h2>
+                          </div>
+                          <span className="earned-reward">
+                            +{reveal.xp} XP <span>+{reveal.coins} coins</span>
+                          </span>
+                        </div>
+                        <div className="reveal-body">
+                          <div>
+                            <h4>Here’s why.</h4>
+                            <p>{reveal.explanation}</p>
+                            <a
+                              className="source-link"
+                              href={reveal.source.url}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {reveal.source.label}
+                              <ExternalLink size={13} />
+                            </a>
+                          </div>
+                          {reveal.chart && (
+                            <div className="reveal-chart">
+                              <MiniChart large values={reveal.chart.values} color="#b5d987" />
+                              <span>{reveal.chart.label}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="concept-unlock">
+                          <BookOpen size={18} />
+                          <span>
+                            CONCEPT DISCOVERED<strong>{reveal.concept}</strong>
+                          </span>
+                          <CheckCircle2 size={20} />
+                        </div>
+                        <button className="primary-btn next-btn" onClick={() => loadRound(mode!)}>
+                          {mode === 'daily' && today.length === 10
+                            ? 'See my results'
+                            : 'Next scenario'}
+                          <ArrowRight size={19} />
+                        </button>
+                      </section>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+            {!mode && view === 'practice' && (
+              <>
+                <div className="page-heading">
+                  <div>
+                    <div className="eyebrow">REPS MAKE IT A HABIT</div>
+                    <h1>
+                      Quick reps.
+                      <br />
+                      <span>Honest confidence.</span>
+                    </h1>
+                    <p>
+                      Predict, say how sure you are, then see why. Every answer sharpens your
+                      calibration in Reflect.
+                    </p>
                   </div>
-                </>
-              )}
-            </>
-          )}
-          {!mode && view === 'lab' && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">STRATEGY LAB · PRACTICE WITHOUT THE PAIN</div>
-                  <h1>
-                    Test the decision.
-                    <br />
-                    <span>Not your savings.</span>
+                </div>
+                <section className="practice-daily content-panel">
+                  <div>
+                    <div className="card-overline">DAILY CHALLENGE</div>
+                    <h3>10 events. One shot each.</h3>
+                    <p>
+                      {today.length}/10 done today · new set in <strong>{countdown}</strong>
+                    </p>
+                    <div className="progress-track">
+                      <span style={{ width: `${today.length * 10}%` }} />
+                    </div>
+                  </div>
+                  <button
+                    className="primary-btn"
+                    disabled={boot || busy}
+                    onClick={() => loadRound('daily')}
+                  >
+                    {today.length === 10 ? 'See results' : today.length ? 'Continue' : 'Start'}
+                    <ArrowRight size={18} />
+                  </button>
+                </section>
+                <div className="section-heading">
+                  <h3>
+                    Unlimited practice<span>REDUCED XP, ONCE PER QUESTION</span>
+                  </h3>
+                </div>
+                <div className="practice-grid">
+                  {(['Beginner', 'Intermediate', 'Advanced', 'Quant'] as Difficulty[]).map(
+                    (d, i) => (
+                      <button
+                        key={d}
+                        className="practice-card"
+                        onClick={() =>
+                          loadRound('unlimited', player, { difficulty: d, category: null })
+                        }
+                      >
+                        <span className="practice-level">{'●'.repeat(i + 1)}</span>
+                        <strong>{d}</strong>
+                        <span>
+                          {
+                            [
+                              'First principles',
+                              'Fundamentals + news',
+                              'Risk + probability',
+                              'Math-heavy',
+                            ][i]
+                          }
+                        </span>
+                      </button>
+                    ),
+                  )}
+                </div>
+                <div className="section-heading">
+                  <h3>
+                    Practice by topic<span>PAIRS WITH THE STUDY TRACKS</span>
+                  </h3>
+                </div>
+                <div className="category-row">
+                  {categories.map((c) => (
+                    <button
+                      key={c}
+                      className="category-chip"
+                      onClick={() => loadRound('unlimited', player, { category: c })}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            {!mode && view === 'study' && (
+              <StudyLuxe
+                currentLevel={level}
+                onPractice={(c) => loadRound('unlimited', player, { category: c })}
+                onPracticeLevel={(d) =>
+                  loadRound('unlimited', player, { difficulty: d, category: null })
+                }
+              />
+            )}
+            {!mode && view === 'stats' && (
+              <>
+                <div className="page-heading">
+                  <div>
+                    <div className="eyebrow">REFLECT · YOUR MARKET BRAIN, UNDER THE MICROSCOPE</div>
+                    <h1>
+                      Results swing with luck.
+                      <br />
+                      <span>Process is what you control.</span>
+                    </h1>
+                    <p>Your gaps, your calibration, and the receipts for every prediction.</p>
+                  </div>
+                </div>
+                <div className="stats-overview">
+                  {[
+                    {
+                      icon: Target,
+                      label: 'Prediction accuracy',
+                      value: attempts.length ? `${player?.accuracy}%` : '—',
+                    },
+                    { icon: Zap, label: 'Total XP earned', value: xp.toLocaleString() },
+                    {
+                      icon: Flame,
+                      label: 'Completed daily streak',
+                      value: String(player?.streak ?? 0),
+                    },
+                    {
+                      icon: BookOpen,
+                      label: 'Concepts practiced',
+                      value: String(new Set(attempts.map((a) => a.questionId)).size),
+                    },
+                  ].map((s) => (
+                    <div className="stat-card" key={s.label}>
+                      <s.icon size={23} />
+                      <strong>{s.value}</strong>
+                      <span>{s.label}</span>
+                    </div>
+                  ))}
+                </div>
+                {player && <GapTracker onOpenLab={() => navigate('lab')} />}
+                {!attempts.length ? (
+                  <div className="empty-state">
+                    <Target size={42} />
+                    <h2>No predictions. Infinite potential.</h2>
+                    <p>
+                      Your stats start with one prediction. Make your first call to begin measuring
+                      calibration.
+                    </p>
+                    <button className="primary-btn" onClick={() => loadRound('daily')}>
+                      Make my first prediction
+                      <ArrowRight size={18} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="stats-breakdown">
+                      <div className="content-panel">
+                        <div className="section-heading compact">
+                          <h3>Accuracy by topic</h3>
+                          <select
+                            aria-label="Accuracy breakdown"
+                            value={statsDimension}
+                            onChange={(e) =>
+                              setStatsDimension(e.target.value as 'category' | 'difficulty')
+                            }
+                          >
+                            <option value="category">By category</option>
+                            <option value="difficulty">By difficulty</option>
+                          </select>
+                        </div>
+                        {Array.from(
+                          new Set(
+                            attempts.map((a) =>
+                              statsDimension === 'category'
+                                ? a.category
+                                : (a.difficulty ?? 'Beginner'),
+                            ),
+                          ),
+                        ).map((c) => {
+                          const a = attempts.filter(
+                              (a) =>
+                                (statsDimension === 'category'
+                                  ? a.category
+                                  : (a.difficulty ?? 'Beginner')) === c,
+                            ),
+                            value = Math.round(
+                              (a.filter((a) => a.correct).length / a.length) * 100,
+                            );
+                          return (
+                            <div className="category-row" key={c}>
+                              <span>
+                                {c}
+                                <small>{a.length} attempts</small>
+                              </span>
+                              <div className="progress-track">
+                                <span style={{ width: value + '%' }} />
+                              </div>
+                              <strong>{value}%</strong>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="content-panel">
+                        <h3>Next best practice</h3>
+                        <p>Your most useful next step is to revisit a concept you missed.</p>
+                        <div className="practice-recommendation">
+                          <Sparkles size={25} />
+                          <strong>
+                            {attempts.filter((a) => !a.correct).at(-1)?.category ??
+                              'Keep your momentum'}
+                          </strong>
+                          <span>
+                            Average response time:{' '}
+                            {Math.round(
+                              attempts.reduce((s, a) => s + a.duration, 0) / attempts.length,
+                            )}
+                            s
+                          </span>
+                        </div>
+                        <button className="primary-btn" onClick={() => loadRound('unlimited')}>
+                          Practice again
+                          <ArrowRight size={16} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="content-panel calibration-panel">
+                      <div className="section-heading compact">
+                        <h3>How well do you know what you know?</h3>
+                        <span className="muted small">
+                          {player?.calibration.brier === null || !player
+                            ? 'No rated predictions yet'
+                            : `Brier score ${player.calibration.brier.toFixed(2)} · lower is better`}
+                        </span>
+                      </div>
+                      {player && player.calibration.count ? (
+                        <>
+                          <p className="muted small">
+                            When you say you’re a certain percent sure, how often are you right? A
+                            well-calibrated player’s bars land on their markers.
+                          </p>
+                          <div className="calibration-rows">
+                            {player.calibration.buckets.map((b) => (
+                              <div className="calibration-row" key={b.stated}>
+                                <span>{b.stated}% sure</span>
+                                <div
+                                  className="calibration-track"
+                                  role="img"
+                                  aria-label={`When ${b.stated}% sure you were right ${b.hitRate}% of the time across ${b.n} predictions`}
+                                >
+                                  <span style={{ width: `${b.hitRate}%` }} />
+                                  <i style={{ left: `${b.stated}%` }} />
+                                </div>
+                                <strong>
+                                  {b.hitRate}% right <small>({b.n})</small>
+                                </strong>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="calibration-verdict">
+                            {(() => {
+                              const rated = player.calibration.buckets;
+                              const stated =
+                                rated.reduce((s, b) => s + b.stated * b.n, 0) /
+                                player.calibration.count;
+                              const hit =
+                                rated.reduce((s, b) => s + b.hitRate * b.n, 0) /
+                                player.calibration.count;
+                              if (player.calibration.count < 10)
+                                return `Only ${player.calibration.count} rated prediction${player.calibration.count === 1 ? '' : 's'} so far. Give it at least 10 before reading much into this.`;
+                              if (stated - hit > 10)
+                                return `You tend to be overconfident: you say ${Math.round(stated)}% on average but are right ${Math.round(hit)}% of the time.`;
+                              if (hit - stated > 10)
+                                return `You tend to be underconfident: you're right ${Math.round(hit)}% of the time but only say ${Math.round(stated)}%.`;
+                              return 'Nicely calibrated: your confidence roughly matches how often you’re right.';
+                            })()}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="muted small">
+                          Pick how sure you are before locking each prediction. Your calibration
+                          shows up here.
+                        </p>
+                      )}
+                    </div>
+                    <div className="content-panel history-panel">
+                      <div className="section-heading compact">
+                        <h3>Prediction receipts</h3>
+                        <select
+                          value={historyFilter}
+                          aria-label="Filter prediction history"
+                          onChange={(e) => setHistoryFilter(e.target.value)}
+                        >
+                          <option>All</option>
+                          <option>Correct</option>
+                          <option>Missed</option>
+                        </select>
+                      </div>
+                      {attempts
+                        .filter(
+                          (a) =>
+                            historyFilter === 'All' ||
+                            (historyFilter === 'Correct' ? a.correct : !a.correct),
+                        )
+                        .slice()
+                        .reverse()
+                        .slice(0, 30)
+                        .map((a, i) => (
+                          <div className="history-row" key={i}>
+                            <span
+                              className={
+                                a.correct ? 'history-status correct' : 'history-status wrong'
+                              }
+                            >
+                              {a.correct ? <Check size={17} /> : <X size={17} />}
+                            </span>
+                            <div>
+                              <strong>{a.category}</strong>
+                              <span>
+                                {a.questionId.replaceAll('-', ' ')} · {a.mode} ·{' '}
+                                {new Date(a.at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <span className="history-outcome">
+                              {a.correct ? 'Good call' : 'Lesson learned'}
+                            </span>
+                            <strong>+{a.xp} XP</strong>
+                          </div>
+                        ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+            {!mode && view === 'lab' && (
+              <>
+                <div className="page-heading">
+                  <div>
+                    <div className="eyebrow">STRATEGY LAB · PRACTICE WITHOUT THE PAIN</div>
+                    <h1>
+                      Test the decision.
+                      <br />
+                      <span>Not your savings.</span>
+                    </h1>
+                    <p>
+                      Drills that show how sizing, luck and market regimes shape results. Every
+                      market here is a labelled model.
+                    </p>
+                  </div>
+                </div>
+                <h2 className="lab-drill-title" id="event-lab">
+                  Event Lab · Live through market history, then measure the gaps
+                </h2>
+                <EventLab
+                  signedIn={!!player}
+                  onNeedAuth={() => setAuth(true)}
+                  onOpenReflect={() => navigate('stats')}
+                />
+                <h2 className="lab-drill-title lab-drill-spaced">
+                  Drill 1 · Same winning strategy, only the bet size changes
+                </h2>
+                <RiskSandbox />
+                <MarketLab />
+                <p className="muted path-note">
+                  This is a model for learning, not a forecast. Real markets add fees, slippage,
+                  gaps and emotions.
+                </p>
+              </>
+            )}
+            {!mode && view === 'guide' && (
+              <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-medium uppercase tracking-[0.14em] text-primary">
+                    How it works
+                  </span>
+                  <h1 className="text-balance text-3xl font-semibold tracking-tight md:text-4xl">
+                    A simulator for your trading decisions.
                   </h1>
-                  <p>
-                    Drills that show how sizing, luck and market regimes shape results. Every market
-                    here is a labelled model.
+                  <p className="max-w-2xl text-muted-foreground">
+                    Practise on model markets, rate how sure you are, and measure the gap between
+                    your plan and what you actually do. No real money is ever involved.
                   </p>
                 </div>
-              </div>
-              <h2 className="lab-drill-title" id="event-lab">
-                Event Lab · Live through market history, then measure the gaps
-              </h2>
-              <EventLab
-                signedIn={!!player}
-                onNeedAuth={() => setAuth(true)}
-                onOpenReflect={() => navigate('stats')}
-              />
-              <h2 className="lab-drill-title lab-drill-spaced">
-                Drill 1 · Same winning strategy, only the bet size changes
-              </h2>
-              <RiskSandbox />
-              <MarketLab />
-              <p className="muted path-note">
-                This is a model for learning, not a forecast. Real markets add fees, slippage, gaps
-                and emotions.
-              </p>
-            </>
-          )}
-          {!mode && view === 'guide' && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">WELCOME TO MEOW STREET</div>
-                  <h1>
-                    Real lessons.
-                    <br />
-                    <span>Very unserious cats.</span>
-                  </h1>
-                  <p>Learn the market. Make terrible predictions. Get better.</p>
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  {[
+                    {
+                      icon: BookOpen,
+                      title: 'Learn',
+                      text: 'Short Study tracks: a concept, a worked example with real numbers, and a quick check.',
+                    },
+                    {
+                      icon: Target,
+                      title: 'Train',
+                      text: 'Daily and unlimited predictions. Say how sure you are before you lock each answer.',
+                    },
+                    {
+                      icon: FlaskConical,
+                      title: 'Simulate',
+                      text: 'Live through model scenarios shaped like real market events, with a locked plan and checkpoints.',
+                    },
+                    {
+                      icon: BarChart3,
+                      title: 'Measure',
+                      text: 'Reflect shows your calibration and four gaps: plan, behaviour, benchmark and confidence.',
+                    },
+                  ].map((s) => (
+                    <Card key={s.title} className="px-5">
+                      <s.icon className="size-5 text-primary" />
+                      <div className="text-base font-semibold">{s.title}</div>
+                      <p className="text-sm leading-relaxed text-muted-foreground">{s.text}</p>
+                    </Card>
+                  ))}
                 </div>
-              </div>
-              <div className="guide-grid">
-                {[
-                  {
-                    icon: TrendingUp,
-                    title: '01. Something happens.',
-                    text: 'You get a market event or a simplified scenario. Read the information that was available at the time.',
-                  },
-                  {
-                    icon: Lock,
-                    title: '02. Make the call.',
-                    text: 'Pick your answer and lock it in. Your response goes to the server, which controls scoring and rewards.',
-                  },
-                  {
-                    icon: Cat,
-                    title: '03. Meet the consequences.',
-                    text: 'The cat reacts. You see the outcome, the explanation, and a source. Model charts are explicitly labeled.',
-                  },
-                  {
-                    icon: Zap,
-                    title: '04. Get a little smarter.',
-                    text: 'Earn XP, discover concepts, and move up the learning path. Finish 10 daily questions to build a streak.',
-                  },
-                ].map((s) => (
-                  <div className="content-panel" key={s.title}>
-                    <s.icon className="guide-icon" size={30} />
-                    <h3>{s.title}</h3>
-                    <p>{s.text}</p>
+                <Card className="gap-3 px-6 text-sm leading-relaxed text-muted-foreground">
+                  <h2 className="text-base font-semibold text-foreground">Rules and scoring</h2>
+                  <p>
+                    Stonk Up is for educational purposes only and does not provide financial advice
+                    or investment recommendations. Market outcomes are uncertain, and past outcomes
+                    do not guarantee future results. Every market in the Lab is a labelled model,
+                    not real prices.
+                  </p>
+                  <p>
+                    Daily challenges reset at 00:00 UTC (05:30 IST). Unlimited practice awards
+                    reduced XP, once per question. XP and coins are progress markers only and can
+                    never be exchanged for money.
+                  </p>
+                  <h2 id="privacy" className="pt-2 text-base font-semibold text-foreground">
+                    Privacy notice
+                  </h2>
+                  <p>
+                    Stonk Up is for people aged 18 and over. To save your progress we store your
+                    name, email, a scrypt hash of your password (never the password itself), your
+                    answers, how long each took, your confidence ratings, your Event Lab runs and
+                    reflections, and your XP and coins. Guests get a random ID instead of an email.
+                    A session cookie keeps you signed in for seven days.
+                  </p>
+                  <p>
+                    We use this only to run the platform and show your stats. There are no ads, no
+                    analytics trackers, and we don’t sell or share your data. The app is hosted on
+                    Render with the database on Neon, and fonts load from Google Fonts, which sees
+                    your IP address.
+                  </p>
+                  <div className="pt-2">
+                    <Button onClick={() => loadRound('daily')}>
+                      Start today’s challenge <ArrowRight />
+                    </Button>
                   </div>
-                ))}
+                </Card>
               </div>
-              <div className="content-panel guide-fineprint">
-                <h3>The fine print. Short, we promise.</h3>
-                <p>
-                  Stonk Up is for educational and entertainment purposes only and does not provide
-                  financial advice or investment recommendations. Market outcomes are uncertain.
-                  Past outcomes do not guarantee future results.
-                </p>
-                <p>
-                  Daily challenges reset at 00:00 UTC. Unlimited practice awards reduced XP only
-                  once per question. Guests keep their progress in their current session; create an
-                  account for a reusable login.
-                </p>
-                <h4 id="privacy">Privacy notice</h4>
-                <p>
-                  Stonk Up is for people aged 18 and over. To save your progress we store your
-                  player name, email, a scrypt hash of your password (never the password itself),
-                  your answers, how long each took, and your XP and coins. Guests get a random ID
-                  instead of an email. A session cookie keeps you signed in for seven days.
-                </p>
-                <p>
-                  We use this only to run the game and show your stats. There are no ads, no
-                  analytics trackers, and we don’t sell or share your data. The app is hosted on
-                  Render with the database on Neon, and fonts load from Google Fonts, which sees
-                  your IP address.
-                </p>
-                <h4>Cat credits</h4>
-                <p>
-                  Reaction artwork: Twemoji © Twitter and contributors, licensed under{' '}
-                  <a
-                    href="https://creativecommons.org/licenses/by/4.0/"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    CC BY 4.0
-                  </a>
-                  .{' '}
-                  <a href="https://github.com/jdecked/twemoji" target="_blank" rel="noreferrer">
-                    Maintained source repository
-                  </a>
-                  . The trading-cat mascot is original vector artwork.
-                </p>
-                <button className="primary-btn" onClick={() => loadRound('daily')}>
-                  Enough reading. Let’s play.
-                  <ArrowRight size={18} />
-                </button>
-              </div>
-            </>
-          )}
-          <footer>
+            )}
+          </motion.div>
+          <footer className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 border-t pt-5 text-xs text-muted-foreground">
             <span>© {new Date(time).getFullYear()} Stonk Up</span>
-            <span>Educational game. Not financial advice.</span>
+            <span>Educational platform. Not financial advice.</span>
             {storage === 'local-demo' && (
-              <span className="demo-label">LOCAL DEMO · SERVER-SAVED PROGRESS</span>
+              <span className="ml-auto rounded-md border px-2 py-0.5 font-mono text-[11px]">
+                Local demo storage
+              </span>
             )}
           </footer>
         </main>
       </div>
-      <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
-        {nav.map((item) => (
-          <button
-            key={item.id}
-            className={view === item.id && !mode ? 'active' : ''}
-            aria-current={view === item.id && !mode ? 'page' : undefined}
-            onClick={() => navigate(item.id)}
-          >
-            <item.icon size={19} />
-            <span>{item.short}</span>
-          </button>
-        ))}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t bg-[#0b0b0e]/95 px-2 pt-2 pb-[max(10px,env(safe-area-inset-bottom))] backdrop-blur-xl md:hidden"
+        aria-label="Mobile navigation"
+      >
+        {nav.map((item) => {
+          const active = view === item.id && !mode;
+          return (
+            <button
+              key={item.id}
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-lg text-[11px]',
+                active ? 'text-primary' : 'text-muted-foreground',
+              )}
+              onClick={() => navigate(item.id)}
+            >
+              <item.icon className="size-5" />
+              <span>{item.short}</span>
+            </button>
+          );
+        })}
       </nav>
       {auth && (
         <div
@@ -1610,16 +1265,11 @@ function App() {
             >
               <X />
             </button>
-            <span className="auth-cat">
-              <Cat size={36} />
-            </span>
-            <div className="eyebrow">YOUR CHARACTER ARC STARTS HERE</div>
+            <div className="eyebrow">STONK UP ACCOUNT</div>
             <h2 id="auth-title">
-              {authMode === 'register'
-                ? 'Hello, future market legend.'
-                : 'Back for more plot twists?'}
+              {authMode === 'register' ? 'Create your account.' : 'Welcome back.'}
             </h2>
-            <p>Save your XP. Build your streak. Make the cat proud.</p>
+            <p>Save your progress, calibration and Event Lab runs across devices.</p>
             <div className="auth-tabs">
               <button
                 className={authMode === 'register' ? 'active' : ''}
@@ -1674,7 +1324,7 @@ function App() {
                     required
                     minLength={2}
                     maxLength={32}
-                    placeholder="Your market alter ego"
+                    placeholder="Your name"
                     autoFocus
                   />
                 </label>
@@ -1722,38 +1372,6 @@ function App() {
             </button>
             <span className="auth-note">Guest progress stays with this browser session.</span>
           </div>
-        </div>
-      )}
-      {reaction && (
-        <div
-          className={'reaction-toast ' + (reveal?.correct ? 'celebrating' : 'mourning')}
-          role="status"
-        >
-          <img
-            src={reaction.url}
-            alt={reaction.type + ' cat'}
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-          <div>
-            <span>MEOW STREET SAYS</span>
-            <strong>{reaction.message}</strong>
-          </div>
-          <button
-            className="icon-btn"
-            aria-label="Dismiss cat reaction"
-            onClick={() => setReaction(null)}
-          >
-            <X size={14} />
-          </button>
-          {reveal?.correct && (
-            <div className="confetti">
-              {Array.from({ length: 12 }, (_, i) => (
-                <i key={i} style={{ '--i': i } as React.CSSProperties} />
-              ))}
-            </div>
-          )}
         </div>
       )}
     </div>

@@ -1,0 +1,110 @@
+/* Legacy screens load below Tailwind utilities so new components always win. */
+@layer theme, base, legacy, components, utilities;
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './styles.css' layer(legacy);
+
+@custom-variant dark (&:is(.dark *));
+
+/* Stonk Up design system: near-black zinc surfaces, one electric-blue brand accent,
+   semantic gain/loss colours, soft depth. Dark-first by design. */
+:root {
+  --radius: 0.85rem;
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #111114;
+  --card-foreground: #fafafa;
+  --popover: #111114;
+  --popover-foreground: #fafafa;
+  --primary: #3d7bff;
+  --primary-foreground: #ffffff;
+  --secondary: #1b1b20;
+  --secondary-foreground: #e4e4e7;
+  --muted: #18181b;
+  --muted-foreground: #a1a1aa;
+  --accent: #1d2440;
+  --accent-foreground: #dbe5ff;
+  --destructive: #f43f5e;
+  --border: #232328;
+  --input: #2a2a30;
+  --ring: #3d7bff;
+  --gain: #22c55e;
+  --loss: #f43f5e;
+  --warn: #f59e0b;
+  --violet: #a78bfa;
+  --cyan: #38bdf8;
+  --chart-1: #3d7bff;
+  --chart-2: #22c55e;
+  --chart-3: #a78bfa;
+  --chart-4: #f59e0b;
+  --chart-5: #f43f5e;
+}
+
+@theme inline {
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --font-serif: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+  --color-gold: #c9a96e;
+  --color-gold-soft: #e6d3a8;
+  --color-ink: #0b0a08;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
+  --color-warn: var(--warn);
+  --color-violet: var(--violet);
+  --color-cyan: var(--cyan);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --animate-border-beam: border-beam calc(var(--duration) * 1s) infinite linear;
+  @keyframes border-beam {
+    100% {
+      offset-distance: 100%;
+    }
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
