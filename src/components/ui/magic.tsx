@@ -8,7 +8,7 @@ export function BentoGrid({ className, ...props }: React.ComponentProps<'div'>) 
   return (
     <div
       className={cn(
-        'grid w-full auto-rows-[minmax(11rem,auto)] grid-cols-1 gap-4 md:grid-cols-6',
+        'grid w-full auto-rows-[minmax(11rem,auto)] grid-cols-1 gap-4 md:grid-cols-6 [&>*]:animate-in [&>*]:fade-in [&>*]:slide-in-from-bottom-4 [&>*]:duration-700 [&>*]:[animation-fill-mode:both] [&>*:nth-child(2)]:[animation-delay:75ms] [&>*:nth-child(3)]:[animation-delay:150ms] [&>*:nth-child(4)]:[animation-delay:200ms] [&>*:nth-child(5)]:[animation-delay:300ms] [&>*:nth-child(6)]:[animation-delay:300ms] [&>*:nth-child(7)]:[animation-delay:500ms] [&>*:nth-child(8)]:[animation-delay:500ms] [&>*:nth-child(9)]:[animation-delay:700ms]',
         className,
       )}
       {...props}
