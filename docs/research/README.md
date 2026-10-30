@@ -13,6 +13,7 @@ The visual plan lives at [strategy-lab-plan.html](strategy-lab-plan.html). Open 
 | [05-regulation-and-data.md](05-regulation-and-data.md) | SEBI, gaming law, child data protection and data licensing constraints |
 | [06-risk-calculations.md](06-risk-calculations.md) | The risk maths retail investors need, from simple trade arithmetic (max loss, risk–reward, break-even win rate) to sizing, drawdowns, Kelly and leverage |
 | [07-portfolio-correlation.md](07-portfolio-correlation.md) | Correlation and diversification: the formulas, how correlations shift in crises, fund overlap, and the misconceptions to design against |
+| [08-what-changes.md](08-what-changes.md) | How notes 06 and 07 change the plan: the professional repositioning, four findings that cut against what is built, new content, and the revised build order |
 
 ## Decisions this research supports
 
