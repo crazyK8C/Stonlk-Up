@@ -147,7 +147,7 @@ app.post('/api/auth/:action', authLimit, async (req, res) => {
     const id = randomUUID();
     const user: User = {
       id,
-      name: 'Market Rookie',
+      name: 'Guest trader',
       email: `${id}@guest.stonk.local`,
       password_hash: '',
       xp: 0,
@@ -188,7 +188,7 @@ app.post('/api/auth/:action', authLimit, async (req, res) => {
     const derived = (await scrypt(data.password, salt, 64)) as Buffer;
     user = {
       id: randomUUID(),
-      name: data.name ?? 'Market Rookie',
+      name: data.name ?? 'Trader',
       email: data.email,
       password_hash: salt + ':' + derived.toString('hex'),
       xp: 0,

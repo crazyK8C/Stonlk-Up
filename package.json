@@ -18,16 +18,23 @@
     "test:api": "tsx server/api.integration.ts"
   },
   "dependencies": {
+    "@tailwindcss/vite": "4.1.0",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.45.3",
     "express": "^5.1.0",
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.1.0",
     "lucide-react": "^0.468.0",
+    "motion": "12.23.0",
     "pg": "^8.16.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "tailwind-merge": "3.3.0",
+    "tailwindcss": "4.1.0",
     "tsx": "^4.19.0",
+    "tw-animate-css": "1.3.0",
     "zod": "^4.6.6"
   },
   "devDependencies": {

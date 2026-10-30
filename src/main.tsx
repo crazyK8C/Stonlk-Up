@@ -25,24 +25,20 @@ import {
   CircleHelp,
   Play,
   Trophy,
-  Cat,
   CheckCircle2,
   FlaskConical,
   House,
 } from 'lucide-react';
-import type {
-  Profile,
-  Question,
-  Reveal,
-  Difficulty,
-  Mode,
-  Attempt,
-  ReactionType,
-} from '../shared/types';
+import type { Profile, Question, Reveal, Difficulty, Mode, Attempt } from '../shared/types';
 import { confidenceLevels, levels } from '../shared/types';
-import './styles.css';
+import './index.css';
 import { api } from './lib/api';
-import { Mascot, MiniChart } from './components/GameArt';
+import { MiniChart } from './components/GameArt';
+import { HomeBento } from './components/HomeBento';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Progress, Separator } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 import { RiskSandbox } from './components/RiskSandbox';
 import { MarketLab } from './components/MarketLab';
 import { StudyTracks } from './components/StudyTracks';
@@ -76,9 +72,6 @@ function App() {
     [reveal, setReveal] = useState<Reveal | null>(null),
     [busy, setBusy] = useState(false),
     [complete, setComplete] = useState(false),
-    [reaction, setReaction] = useState<{ url: string; message: string; type: ReactionType } | null>(
-      null,
-    ),
     [pending, setPending] = useState<Mode | null>(null),
     [menu, setMenu] = useState(false),
     [time, setTime] = useState(Date.now()),
@@ -96,11 +89,6 @@ function App() {
     const interval = setInterval(() => setTime(Date.now()), 1000);
     return () => clearInterval(interval);
   }, []);
-  useEffect(() => {
-    if (!reaction) return;
-    const t = setTimeout(() => setReaction(null), 4500);
-    return () => clearTimeout(t);
-  }, [reaction]);
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [view, mode, question?.id]);
@@ -245,9 +233,6 @@ function App() {
       });
       setReveal(r);
       setPlayer(r.profile);
-      api<{ url: string; message: string; type: ReactionType }>('/reactions/' + r.reaction)
-        .then(setReaction)
-        .catch(() => {});
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -302,97 +287,137 @@ function App() {
     'Psychology',
   ];
   return (
-    <div className="app-shell">
-      <aside className={'sidebar ' + (menu ? 'open' : '')}>
+    <div className="min-h-screen bg-background text-foreground md:pl-64">
+      <aside
+        className={cn(
+          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r bg-[#0b0b0e] px-3 py-5 transition-transform duration-200 md:translate-x-0',
+          menu ? 'translate-x-0' : '-translate-x-full',
+        )}
+        aria-label="Main navigation"
+      >
         <a
-          className="brand"
+          className="mb-8 flex items-center gap-3 px-2"
           href="#"
           onClick={(e) => {
             e.preventDefault();
             navigate('play');
           }}
         >
-          <span className="brand-mark">
-            <TrendingUp size={25} />
+          <span className="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-[#3d7bff] to-[#7c5cff] shadow-[0_8px_24px_-8px_rgba(61,123,255,0.8)]">
+            <TrendingUp className="size-5 text-white" />
           </span>
-          stonk<span className="brand-up">up</span>
-          <span className="brand-dot">↗</span>
+          <span className="flex flex-col leading-tight">
+            <span className="text-[15px] font-semibold tracking-tight">Stonk Up</span>
+            <span className="text-[11px] text-muted-foreground">Decision training lab</span>
+          </span>
         </a>
-        <div className="side-caption">YOUR NEXT BAD DECISION STARTS HERE</div>
-        <div className="nav-label">THE PLAYGROUND</div>
-        <nav>
-          {nav.map((n) => (
-            <button
-              key={n.id}
-              className={view === n.id ? 'nav-item active' : 'nav-item'}
-              onClick={() => navigate(n.id)}
-            >
-              <n.icon size={19} />
-              {n.label}
-              {n.id === 'play' && <span className="nav-live" />}
-            </button>
-          ))}
+        <div className="mb-2 px-3 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70">
+          Platform
+        </div>
+        <nav className="flex flex-col gap-1">
+          {nav.map((n) => {
+            const active = view === n.id && !mode;
+            return (
+              <button
+                key={n.id}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm transition-colors',
+                  active
+                    ? 'bg-accent text-foreground'
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+                )}
+                onClick={() => navigate(n.id)}
+              >
+                {active && (
+                  <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-primary shadow-[0_0_10px_var(--primary)]" />
+                )}
+                <n.icon className={cn('size-4', active && 'text-primary')} />
+                {n.label}
+              </button>
+            );
+          })}
         </nav>
-        <div className="side-divider" />
+        <Separator className="my-4" />
         <button
-          className={'nav-item ' + (view === 'guide' ? 'active' : '')}
+          className={cn(
+            'flex h-10 items-center gap-3 rounded-lg px-3 text-sm transition-colors',
+            view === 'guide'
+              ? 'bg-accent text-foreground'
+              : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+          )}
           onClick={() => navigate('guide')}
         >
-          <CircleHelp size={19} />
-          How to play
+          <CircleHelp className="size-4" />
+          How it works
         </button>
-        <div className="sidebar-bottom">
-          <div className="cat-note">
-            <Cat size={28} />
-            <p>
-              Bad predictions.
-              <br />
-              <strong>Good character development.</strong>
+        {!player ? (
+          <div className="mt-auto flex flex-col gap-3 rounded-xl border bg-card p-4">
+            <div className="text-sm font-medium">Save your progress</div>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Keep your calibration, Event Lab runs and streak across devices.
             </p>
+            <Button className="w-full" onClick={() => setAuth(true)}>
+              Sign in or play as guest
+            </Button>
           </div>
-          <div className="side-profile">
-            <div className="avatar">
-              {player ? player.name.slice(0, 1).toUpperCase() : <Cat size={21} />}
-            </div>
-            <div>
-              <strong>{player?.name ?? 'Future market legend'}</strong>
-              <span>
-                {levels[level - 1]} · Level {level}
-              </span>
-            </div>
-            {player ? (
-              <button
+        ) : (
+          <div className="mt-auto rounded-xl border bg-card p-3">
+            <div className="flex items-center gap-3">
+              <div className="grid size-9 place-items-center rounded-full bg-secondary text-sm font-semibold">
+                {player.name.slice(0, 1).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">{player.name}</div>
+                <div className="truncate text-[11px] text-muted-foreground">
+                  {levels[level - 1]} · Level {level}
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8"
                 aria-label="Sign out"
-                className="icon-btn"
                 onClick={async () => {
                   await api('/auth/logout', {});
                   setPlayer(null);
                   setMode(null);
                 }}
               >
-                <LogOut size={16} />
-              </button>
-            ) : (
-              <button className="icon-btn" aria-label="Sign in" onClick={() => setAuth(true)}>
-                <ArrowRight size={16} />
-              </button>
-            )}
+                <LogOut />
+              </Button>
+            </div>
+            <Progress
+              value={level === 8 ? 100 : (xp % 1000) / 10}
+              className="mt-3"
+              aria-label="Progress to next level"
+            />
           </div>
-        </div>
+        )}
       </aside>
-      <div className="workspace">
-        <header className="topbar">
-          <div className="topbar-left">
-            <button
-              className="mobile-menu icon-btn"
+      {menu && (
+        <div
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden"
+          onClick={() => setMenu(false)}
+          aria-hidden="true"
+        />
+      )}
+      <div className="flex min-h-screen flex-col">
+        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b bg-background/80 px-4 backdrop-blur-xl md:px-8">
+          <div className="flex min-w-0 items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-9 md:hidden"
               aria-label="Toggle navigation"
               onClick={() => setMenu(!menu)}
             >
               <Menu />
-            </button>
-            <span className="breadcrumb">
-              The playground <ChevronRight size={13} />
-              <strong>
+            </Button>
+            <span className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+              <span className="hidden sm:inline">Stonk Up</span>
+              <ChevronRight className="hidden size-3.5 sm:inline" />
+              <strong className="truncate font-medium text-foreground">
                 {mode
                   ? mode === 'daily'
                     ? 'Daily challenge'
@@ -401,30 +426,27 @@ function App() {
               </strong>
             </span>
           </div>
-          <div className="topbar-stats">
-            <span className="streak">
-              <Flame size={18} />
+          <div className="flex items-center gap-2">
+            <span className="hidden h-8 items-center gap-1.5 rounded-full border bg-card px-3 font-mono text-xs sm:flex">
+              <Flame className="size-3.5 text-warn" />
               {player?.streak ?? 0}
-              <span className="stat-unit">day streak</span>
+              <span className="text-muted-foreground">day streak</span>
             </span>
-            <span className="coins">
-              <Coins size={18} />
-              {player?.coins ?? 0}
-            </span>
-            <span className="xp">
-              <Zap size={17} />
-              {xp.toLocaleString()} XP
+            <span className="flex h-8 items-center gap-1.5 rounded-full border bg-card px-3 font-mono text-xs">
+              <Zap className="size-3.5 text-primary" />
+              {xp.toLocaleString()}
+              <span className="text-muted-foreground">XP</span>
             </span>
             <button
-              className="top-avatar"
-              aria-label={player ? 'Open player stats' : 'Create an account'}
+              className="grid size-8 place-items-center rounded-full border bg-secondary text-xs font-semibold"
+              aria-label={player ? 'Open Reflect' : 'Sign in'}
               onClick={() => (player ? navigate('stats') : setAuth(true))}
             >
-              {player?.name.slice(0, 1).toUpperCase() ?? 'K'}
+              {player?.name.slice(0, 1).toUpperCase() ?? '?'}
             </button>
           </div>
         </header>
-        <main>
+        <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 pb-28 pt-6 md:px-8 md:pb-12 md:pt-8">
           {error && !auth && (
             <div className="error-banner" role="alert">
               {error}
@@ -434,272 +456,15 @@ function App() {
             </div>
           )}
           {!mode && view === 'play' && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">
-                    <span className="green-dot" /> THE MARKET IS OPEN. YOUR BRAIN SHOULD BE TOO.
-                  </div>
-                  <h1>
-                    Less scrolling. <span>More stonking.</span>
-                  </h1>
-                  <p>Real-world events. Questionable instincts. A smarter you.</p>
-                </div>
-                <div className="today-date">
-                  {new Date(time).toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                  <span>LET’S MAKE SOME MOVES</span>
-                </div>
-              </div>
-              <section className="feature-grid">
-                <div className="daily-card">
-                  <div className="daily-background">
-                    <MiniChart color="#728d59" large />
-                  </div>
-                  <div className="daily-copy">
-                    <div className="live-pill">
-                      <span /> DAILY CHALLENGE <span className="pill-divider">/</span> VOL.{' '}
-                      {new Date(time).getUTCDate().toString().padStart(2, '0')}
-                    </div>
-                    <h2>
-                      The market moved.
-                      <br />
-                      Did you see it coming?
-                    </h2>
-                    <p>
-                      10 events. 10 predictions. One chance to prove
-                      <br className="desktop-break" /> your inner market genius isn’t just a lucky
-                      cat.
-                    </p>
-                    <div className="daily-details">
-                      <span>
-                        <Target size={15} />
-                        10 questions
-                      </span>
-                      <span>
-                        <Clock3 size={15} />
-                        ~5 minutes
-                      </span>
-                      <span>
-                        <Zap size={15} />
-                        Up to 1,000 XP
-                      </span>
-                    </div>
-                    <button
-                      className="primary-btn"
-                      disabled={boot || busy}
-                      onClick={() => loadRound('daily')}
-                    >
-                      {today.length === 10
-                        ? 'View your results'
-                        : today.length
-                          ? 'Continue challenge'
-                          : 'Let’s play'}
-                      <ArrowUpRight size={19} />
-                    </button>
-                    <div className="reset-note">
-                      <Clock3 size={13} /> New challenge in <strong>{countdown}</strong>
-                    </div>
-                  </div>
-                  <div className="daily-art">
-                    <span className="floating-tag tag-up">↗ BIG BRAIN ENERGY</span>
-                    <Mascot />
-                    <span className="floating-tag tag-down">WALL STREET? MEOW STREET.</span>
-                    <span className="art-spark spark-one">✦</span>
-                    <span className="art-spark spark-two">✧</span>
-                  </div>
-                </div>
-                <div className="level-card">
-                  <div className="card-overline">
-                    YOUR CHARACTER ARC <Sparkles size={16} />
-                  </div>
-                  <div className="level-avatar">
-                    <Cat size={42} strokeWidth={1.3} />
-                    <span>{level}</span>
-                  </div>
-                  <div className="level-name">{levels[level - 1]}</div>
-                  <p>
-                    {xp === 0
-                      ? 'Every legend starts with a guess.'
-                      : 'Your instincts are getting sharper.'}
-                  </p>
-                  <div className="level-progress-label">
-                    <span>LEVEL {level}</span>
-                    <strong>{level === 8 ? 'MAX LEVEL' : `${xp % 1000} / 1,000 XP`}</strong>
-                  </div>
-                  <div className="progress-track">
-                    <span style={{ width: level === 8 ? '100%' : `${(xp % 1000) / 10}%` }} />
-                  </div>
-                  <div className="level-next">
-                    <Lock size={13} />
-                    {level === 8 ? 'You reached the summit' : `Next up: ${levels[level]}`}
-                  </div>
-                  <button className="text-link" onClick={() => navigate('study')}>
-                    Explore your learning path
-                    <ArrowRight size={15} />
-                  </button>
-                </div>
-              </section>
-              <div className="section-heading">
-                <div>
-                  <h3>
-                    Pick your playground<span>YOUR MONEY IS SAFE. YOUR EGO, LESS SO.</span>
-                  </h3>
-                </div>
-                <span className="muted small">Learn by doing. Lose absolutely nothing.</span>
-              </div>
-              <section className="mode-grid">
-                <button className="mode-card unlimited" onClick={() => loadRound('unlimited')}>
-                  <div className="mode-top">
-                    <span className="mode-icon purple">
-                      <Infinity size={24} />
-                    </span>
-                    <span className="mode-pill">NO LIMITS. NO PRESSURE.</span>
-                    <ArrowUpRight size={18} />
-                  </div>
-                  <h3>Unlimited mode</h3>
-                  <p>
-                    Keep guessing. Keep learning.
-                    <br />
-                    The market has plenty of plot twists.
-                  </p>
-                  <div className="mode-bottom">
-                    <span>4 difficulty levels</span>
-                    <span className="play-circle">
-                      <Play size={13} fill="currentColor" />
-                    </span>
-                  </div>
-                  <div className="decorative-loop">∞</div>
-                </button>
-                <button className="mode-card path-card" onClick={() => navigate('study')}>
-                  <div className="mode-top">
-                    <span className="mode-icon green">
-                      <BookOpen size={23} />
-                    </span>
-                    <span className="mode-pill">SMALL STEPS. BIG BRAIN.</span>
-                    <ArrowUpRight size={18} />
-                  </div>
-                  <h3>From noob to know-it-all</h3>
-                  <p>
-                    A learning path that levels up
-                    <br />
-                    with you. Math arrives fashionably late.
-                  </p>
-                  <div className="mode-bottom">
-                    <span>8 levels to conquer</span>
-                    <div className="step-dots">
-                      <i />
-                      <i />
-                      <i />
-                      <i />
-                      <i />
-                    </div>
-                  </div>
-                </button>
-                <button className="mode-card stats-card" onClick={() => navigate('stats')}>
-                  <div className="mode-top">
-                    <span className="mode-icon orange">
-                      <BarChart3 size={24} />
-                    </span>
-                    <span className="mode-pill">RECEIPTS INCLUDED.</span>
-                    <ArrowUpRight size={18} />
-                  </div>
-                  <h3>Meet your market brain</h3>
-                  <p>
-                    Find your strengths. Spot your blind
-                    <br />
-                    spots. Give your future self a head start.
-                  </p>
-                  <div className="mode-bottom">
-                    <span>Your prediction history</span>
-                    <div className="tiny-bars">
-                      <i />
-                      <i />
-                      <i />
-                      <i />
-                      <i />
-                    </div>
-                  </div>
-                </button>
-              </section>
-              <section className="bottom-grid">
-                <div className="mission-card">
-                  <div className="section-heading compact">
-                    <h3>Your daily side quests</h3>
-                    <span className="muted small">A LITTLE PROGRESS GOES A LONG WAY</span>
-                  </div>
-                  {[
-                    {
-                      title: 'Show up. Make a prediction.',
-                      desc: 'Complete your first daily question',
-                      value: today.length ? 1 : 0,
-                      total: 1,
-                      icon: Target,
-                      reward: '+100 XP*',
-                    },
-                    {
-                      title: 'Trust the process, not the hype.',
-                      desc: 'Get 3 predictions right today',
-                      value: today.filter((a) => a.correct).length,
-                      total: 3,
-                      icon: CheckCircle2,
-                      reward: '3 good calls',
-                    },
-                    {
-                      title: 'Finish what you stonked.',
-                      desc: 'Complete all 10 daily questions',
-                      value: today.length,
-                      total: 10,
-                      icon: Flame,
-                      reward: 'Build your streak',
-                    },
-                  ].map((m) => (
-                    <div className="mission" key={m.title}>
-                      <span className={'mission-icon ' + (m.value >= m.total ? 'done' : '')}>
-                        <m.icon size={19} />
-                      </span>
-                      <div className="mission-text">
-                        <strong>{m.title}</strong>
-                        <span>{m.desc}</span>
-                      </div>
-                      <span className="mission-reward">{m.reward}</span>
-                      <div className="mission-meter">
-                        <span>
-                          {Math.min(m.value, m.total)}/{m.total}
-                        </span>
-                        <div className="progress-track">
-                          <span style={{ width: `${Math.min(m.value / m.total, 1) * 100}%` }} />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="mission-footnote">
-                    *For a correct daily prediction. Side quests track progress; no bonus XP.
-                  </div>
-                </div>
-                <div className="wisdom-card">
-                  <span className="card-overline">
-                    <span>✳</span> A LITTLE MARKET WISDOM
-                  </span>
-                  <blockquote>
-                    “Being right once is luck. Understanding why is how you get better.”
-                  </blockquote>
-                  <p>— The Meow Street trading desk</p>
-                  <div className="wisdom-bottom">
-                    <span>Patience is a position, too.</span>
-                    <BookOpen size={18} />
-                  </div>
-                </div>
-              </section>
-              <div className="bottom-tagline">
-                <ShieldCheck size={14} />
-                <span>Real lessons. Virtual stakes. Zero financial advice.</span>
-                <span className="cat-signature">Built for curious humans. Approved by cats.</span>
-              </div>
-            </>
+            <HomeBento
+              player={player}
+              todayCount={today.length}
+              countdown={countdown}
+              busy={boot || busy}
+              onStartDaily={() => loadRound('daily')}
+              onNavigate={(to) => navigate(to)}
+              onSignIn={() => setAuth(true)}
+            />
           )}
           {mode && (
             <div className="game-page">
@@ -779,16 +544,16 @@ function App() {
               {busy && !question && !complete && (
                 <div className="loading-card">
                   <span className="spinner" />
-                  Getting your next market plot twist…
+                  Loading the next scenario…
                 </div>
               )}
               {!question && !busy && !complete && (
                 <div className="empty-state">
                   <Infinity size={40} />
-                  <h2>A different kind of challenge.</h2>
+                  <h2>Unlimited practice</h2>
                   <p>{difficulty} practice is ready. Repeated questions earn no extra XP.</p>
                   <button className="primary-btn" onClick={() => loadRound('unlimited')}>
-                    Deal me a question
+                    Start a scenario
                     <ArrowRight size={18} />
                   </button>
                 </div>
@@ -800,11 +565,11 @@ function App() {
                   </span>
                   <div className="eyebrow">DAILY CHALLENGE COMPLETE</div>
                   <h1>
-                    You showed up.
+                    Today’s ten are done.
                     <br />
-                    <span>The cat respects that.</span>
+                    <span>Process beats results.</span>
                   </h1>
-                  <p>Every prediction is a rep for your market brain.</p>
+                  <p>Review your calibration in Reflect, or keep practising.</p>
                   <div className="result-stats">
                     <div>
                       <strong>{today.filter((a) => a.correct).length}/10</strong>
@@ -820,7 +585,7 @@ function App() {
                     </div>
                   </div>
                   <button className="primary-btn" onClick={() => loadRound('unlimited')}>
-                    Keep playing
+                    Keep practising
                     <Infinity size={19} />
                   </button>
                   <p className="muted small">
@@ -914,7 +679,7 @@ function App() {
                             <Lock size={13} />
                             {confidence === null
                               ? 'Pick an answer and how sure you are.'
-                              : 'Your first instinct. Your final answer.'}
+                              : 'Locked answers are final.'}
                           </span>
                           <button
                             className="primary-btn"
@@ -933,15 +698,22 @@ function App() {
                       )}
                     </section>
                     <aside className="game-aside">
-                      <div className="coach-cat">
-                        <Mascot small />
-                        <div className="speech-bubble">
+                      <div className="game-tip">
+                        <Target size={18} />
+                        <h4>
                           {reveal
                             ? reveal.correct
-                              ? 'An excellent use of your one brain cell.'
-                              : 'A wrong answer is just a lesson with dramatic timing.'
-                            : 'No real money. Just you, the market, and a suspiciously confident cat.'}
-                        </div>
+                              ? 'CORRECT'
+                              : 'NOT THIS TIME'
+                            : 'HOW THIS WORKS'}
+                        </h4>
+                        <p>
+                          {reveal
+                            ? reveal.correct
+                              ? 'Check whether your confidence matched. Being right for the wrong reason still counts against calibration.'
+                              : 'Read why before moving on. A miss you understand is worth more than a lucky hit.'
+                            : 'Pick an answer, say how sure you are, then lock it in. No real money is involved.'}
+                        </p>
                       </div>
                       <div className="game-tip">
                         <Sparkles size={18} />
@@ -976,14 +748,12 @@ function App() {
                         </span>
                         <div>
                           <div className="eyebrow">
-                            {reveal.correct
-                              ? 'GOOD CALL, MARKET HUMAN.'
-                              : 'THE MARKET HAD OTHER PLANS.'}
+                            {reveal.correct ? 'CORRECT' : 'NOT THIS TIME'}
                           </div>
                           <h2>
                             {reveal.correct
                               ? 'Your prediction checks out.'
-                              : 'Let’s unpack that one.'}
+                              : 'Here’s what happened.'}
                           </h2>
                         </div>
                         <span className="earned-reward">
@@ -1021,7 +791,7 @@ function App() {
                       <button className="primary-btn next-btn" onClick={() => loadRound(mode!)}>
                         {mode === 'daily' && today.length === 10
                           ? 'See my results'
-                          : 'Next market plot twist'}
+                          : 'Next scenario'}
                         <ArrowRight size={19} />
                       </button>
                     </section>
@@ -1135,7 +905,7 @@ function App() {
               <StudyTracks onPractice={(c) => loadRound('unlimited', player, { category: c })} />
               <div className="section-heading study-levels-heading">
                 <h3>
-                  Your level path<span>FROM MARKET BABY TO QUANT OVERLORD</span>
+                  Your level path<span>EIGHT LEVELS, EARNED WITH XP</span>
                 </h3>
               </div>
               <div className="learning-grid">
@@ -1255,7 +1025,10 @@ function App() {
                 <div className="empty-state">
                   <Target size={42} />
                   <h2>No predictions. Infinite potential.</h2>
-                  <p>Your stats start with one guess. Let’s give the cat something to judge.</p>
+                  <p>
+                    Your stats start with one prediction. Make your first call to begin measuring
+                    calibration.
+                  </p>
                   <button className="primary-btn" onClick={() => loadRound('daily')}>
                     Make my first prediction
                     <ArrowRight size={18} />
@@ -1266,7 +1039,7 @@ function App() {
                   <div className="stats-breakdown">
                     <div className="content-panel">
                       <div className="section-heading compact">
-                        <h3>Your strengths & plot twists</h3>
+                        <h3>Accuracy by topic</h3>
                         <select
                           aria-label="Accuracy breakdown"
                           value={statsDimension}
@@ -1309,7 +1082,7 @@ function App() {
                       })}
                     </div>
                     <div className="content-panel">
-                      <h3>Practice makes less terrible.</h3>
+                      <h3>Next best practice</h3>
                       <p>Your most useful next step is to revisit a concept you missed.</p>
                       <div className="practice-recommendation">
                         <Sparkles size={25} />
@@ -1475,117 +1248,118 @@ function App() {
             </>
           )}
           {!mode && view === 'guide' && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">WELCOME TO MEOW STREET</div>
-                  <h1>
-                    Real lessons.
-                    <br />
-                    <span>Very unserious cats.</span>
-                  </h1>
-                  <p>Learn the market. Make terrible predictions. Get better.</p>
-                </div>
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-medium uppercase tracking-[0.14em] text-primary">
+                  How it works
+                </span>
+                <h1 className="text-balance text-3xl font-semibold tracking-tight md:text-4xl">
+                  A simulator for your trading decisions.
+                </h1>
+                <p className="max-w-2xl text-muted-foreground">
+                  Practise on model markets, rate how sure you are, and measure the gap between your
+                  plan and what you actually do. No real money is ever involved.
+                </p>
               </div>
-              <div className="guide-grid">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {[
                   {
-                    icon: TrendingUp,
-                    title: '01. Something happens.',
-                    text: 'You get a market event or a simplified scenario. Read the information that was available at the time.',
+                    icon: BookOpen,
+                    title: 'Learn',
+                    text: 'Short Study tracks: a concept, a worked example with real numbers, and a quick check.',
                   },
                   {
-                    icon: Lock,
-                    title: '02. Make the call.',
-                    text: 'Pick your answer and lock it in. Your response goes to the server, which controls scoring and rewards.',
+                    icon: Target,
+                    title: 'Train',
+                    text: 'Daily and unlimited predictions. Say how sure you are before you lock each answer.',
                   },
                   {
-                    icon: Cat,
-                    title: '03. Meet the consequences.',
-                    text: 'The cat reacts. You see the outcome, the explanation, and a source. Model charts are explicitly labeled.',
+                    icon: FlaskConical,
+                    title: 'Simulate',
+                    text: 'Live through model scenarios shaped like real market events, with a locked plan and checkpoints.',
                   },
                   {
-                    icon: Zap,
-                    title: '04. Get a little smarter.',
-                    text: 'Earn XP, discover concepts, and move up the learning path. Finish 10 daily questions to build a streak.',
+                    icon: BarChart3,
+                    title: 'Measure',
+                    text: 'Reflect shows your calibration and four gaps: plan, behaviour, benchmark and confidence.',
                   },
                 ].map((s) => (
-                  <div className="content-panel" key={s.title}>
-                    <s.icon className="guide-icon" size={30} />
-                    <h3>{s.title}</h3>
-                    <p>{s.text}</p>
-                  </div>
+                  <Card key={s.title} className="px-5">
+                    <s.icon className="size-5 text-primary" />
+                    <div className="text-base font-semibold">{s.title}</div>
+                    <p className="text-sm leading-relaxed text-muted-foreground">{s.text}</p>
+                  </Card>
                 ))}
               </div>
-              <div className="content-panel guide-fineprint">
-                <h3>The fine print. Short, we promise.</h3>
+              <Card className="gap-3 px-6 text-sm leading-relaxed text-muted-foreground">
+                <h2 className="text-base font-semibold text-foreground">Rules and scoring</h2>
                 <p>
-                  Stonk Up is for educational and entertainment purposes only and does not provide
-                  financial advice or investment recommendations. Market outcomes are uncertain.
-                  Past outcomes do not guarantee future results.
+                  Stonk Up is for educational purposes only and does not provide financial advice or
+                  investment recommendations. Market outcomes are uncertain, and past outcomes do
+                  not guarantee future results. Every market in the Lab is a labelled model, not
+                  real prices.
                 </p>
                 <p>
-                  Daily challenges reset at 00:00 UTC. Unlimited practice awards reduced XP only
-                  once per question. Guests keep their progress in their current session; create an
-                  account for a reusable login.
+                  Daily challenges reset at 00:00 UTC (05:30 IST). Unlimited practice awards reduced
+                  XP, once per question. XP and coins are progress markers only and can never be
+                  exchanged for money.
                 </p>
-                <h4 id="privacy">Privacy notice</h4>
+                <h2 id="privacy" className="pt-2 text-base font-semibold text-foreground">
+                  Privacy notice
+                </h2>
                 <p>
-                  Stonk Up is for people aged 18 and over. To save your progress we store your
-                  player name, email, a scrypt hash of your password (never the password itself),
-                  your answers, how long each took, and your XP and coins. Guests get a random ID
-                  instead of an email. A session cookie keeps you signed in for seven days.
+                  Stonk Up is for people aged 18 and over. To save your progress we store your name,
+                  email, a scrypt hash of your password (never the password itself), your answers,
+                  how long each took, your confidence ratings, your Event Lab runs and reflections,
+                  and your XP and coins. Guests get a random ID instead of an email. A session
+                  cookie keeps you signed in for seven days.
                 </p>
                 <p>
-                  We use this only to run the game and show your stats. There are no ads, no
+                  We use this only to run the platform and show your stats. There are no ads, no
                   analytics trackers, and we don’t sell or share your data. The app is hosted on
                   Render with the database on Neon, and fonts load from Google Fonts, which sees
                   your IP address.
                 </p>
-                <h4>Cat credits</h4>
-                <p>
-                  Reaction artwork: Twemoji © Twitter and contributors, licensed under{' '}
-                  <a
-                    href="https://creativecommons.org/licenses/by/4.0/"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    CC BY 4.0
-                  </a>
-                  .{' '}
-                  <a href="https://github.com/jdecked/twemoji" target="_blank" rel="noreferrer">
-                    Maintained source repository
-                  </a>
-                  . The trading-cat mascot is original vector artwork.
-                </p>
-                <button className="primary-btn" onClick={() => loadRound('daily')}>
-                  Enough reading. Let’s play.
-                  <ArrowRight size={18} />
-                </button>
-              </div>
-            </>
+                <div className="pt-2">
+                  <Button onClick={() => loadRound('daily')}>
+                    Start today’s challenge <ArrowRight />
+                  </Button>
+                </div>
+              </Card>
+            </div>
           )}
-          <footer>
+          <footer className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 border-t pt-5 text-xs text-muted-foreground">
             <span>© {new Date(time).getFullYear()} Stonk Up</span>
-            <span>Educational game. Not financial advice.</span>
+            <span>Educational platform. Not financial advice.</span>
             {storage === 'local-demo' && (
-              <span className="demo-label">LOCAL DEMO · SERVER-SAVED PROGRESS</span>
+              <span className="ml-auto rounded-md border px-2 py-0.5 font-mono text-[11px]">
+                Local demo storage
+              </span>
             )}
           </footer>
         </main>
       </div>
-      <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
-        {nav.map((item) => (
-          <button
-            key={item.id}
-            className={view === item.id && !mode ? 'active' : ''}
-            aria-current={view === item.id && !mode ? 'page' : undefined}
-            onClick={() => navigate(item.id)}
-          >
-            <item.icon size={19} />
-            <span>{item.short}</span>
-          </button>
-        ))}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t bg-[#0b0b0e]/95 px-2 pt-2 pb-[max(10px,env(safe-area-inset-bottom))] backdrop-blur-xl md:hidden"
+        aria-label="Mobile navigation"
+      >
+        {nav.map((item) => {
+          const active = view === item.id && !mode;
+          return (
+            <button
+              key={item.id}
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-lg text-[11px]',
+                active ? 'text-primary' : 'text-muted-foreground',
+              )}
+              onClick={() => navigate(item.id)}
+            >
+              <item.icon className="size-5" />
+              <span>{item.short}</span>
+            </button>
+          );
+        })}
       </nav>
       {auth && (
         <div
@@ -1610,16 +1384,11 @@ function App() {
             >
               <X />
             </button>
-            <span className="auth-cat">
-              <Cat size={36} />
-            </span>
-            <div className="eyebrow">YOUR CHARACTER ARC STARTS HERE</div>
+            <div className="eyebrow">STONK UP ACCOUNT</div>
             <h2 id="auth-title">
-              {authMode === 'register'
-                ? 'Hello, future market legend.'
-                : 'Back for more plot twists?'}
+              {authMode === 'register' ? 'Create your account.' : 'Welcome back.'}
             </h2>
-            <p>Save your XP. Build your streak. Make the cat proud.</p>
+            <p>Save your progress, calibration and Event Lab runs across devices.</p>
             <div className="auth-tabs">
               <button
                 className={authMode === 'register' ? 'active' : ''}
@@ -1674,7 +1443,7 @@ function App() {
                     required
                     minLength={2}
                     maxLength={32}
-                    placeholder="Your market alter ego"
+                    placeholder="Your name"
                     autoFocus
                   />
                 </label>
@@ -1722,38 +1491,6 @@ function App() {
             </button>
             <span className="auth-note">Guest progress stays with this browser session.</span>
           </div>
-        </div>
-      )}
-      {reaction && (
-        <div
-          className={'reaction-toast ' + (reveal?.correct ? 'celebrating' : 'mourning')}
-          role="status"
-        >
-          <img
-            src={reaction.url}
-            alt={reaction.type + ' cat'}
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-          <div>
-            <span>MEOW STREET SAYS</span>
-            <strong>{reaction.message}</strong>
-          </div>
-          <button
-            className="icon-btn"
-            aria-label="Dismiss cat reaction"
-            onClick={() => setReaction(null)}
-          >
-            <X size={14} />
-          </button>
-          {reveal?.correct && (
-            <div className="confetti">
-              {Array.from({ length: 12 }, (_, i) => (
-                <i key={i} style={{ '--i': i } as React.CSSProperties} />
-              ))}
-            </div>
-          )}
         </div>
       )}
     </div>
