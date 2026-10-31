@@ -14,6 +14,7 @@ The visual plan lives at [strategy-lab-plan.html](strategy-lab-plan.html). Open 
 | [06-risk-calculations.md](06-risk-calculations.md) | The risk maths retail investors need, from simple trade arithmetic (max loss, risk–reward, break-even win rate) to sizing, drawdowns, Kelly and leverage |
 | [07-portfolio-correlation.md](07-portfolio-correlation.md) | Correlation and diversification: the formulas, how correlations shift in crises, fund overlap, and the misconceptions to design against |
 | [08-what-changes.md](08-what-changes.md) | How notes 06 and 07 change the plan: the professional repositioning, four findings that cut against what is built, new content, and the revised build order |
+| [09-how-traders-practise.md](09-how-traders-practise.md) | How traders practise, traditional and modern, the six-tool gap, and the Lab redesigned as one workbench (the Photoshop reference) |
 
 ## Decisions this research supports
 
