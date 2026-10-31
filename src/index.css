@@ -108,3 +108,23 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Strategy Lab: older drills render inside the workbench canvas, so quiet their panels
+   to match the instrument surfaces. */
+@layer components {
+  .lab-canvas .content-panel {
+    background: #0c0d10;
+    border-color: rgba(255, 255, 255, 0.06);
+    border-radius: 0.75rem;
+  }
+  /* Stack the sizing sandbox when the canvas, not the window, is narrow. */
+  @container (max-width: 960px) {
+    .lab-canvas .sandbox {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  /* The canvas header already names the drill. */
+  .lab-canvas .market-lab > .section-heading h3 {
+    display: none;
+  }
+}

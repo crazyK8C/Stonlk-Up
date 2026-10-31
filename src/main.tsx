@@ -41,10 +41,8 @@ import { LogoMark, Wordmark } from './components/Logo';
 import { Splash, SPLASH_KEY } from './components/Splash';
 import { AnimatePresence, motion } from 'motion/react';
 import { cn } from '@/lib/utils';
-import { RiskSandbox } from './components/RiskSandbox';
-import { MarketLab } from './components/MarketLab';
 import { StudyLuxe } from './components/StudyLuxe';
-import { EventLab } from './components/EventLab';
+import { StrategyLab } from './components/StrategyLab';
 import { GapTracker } from './components/GapTracker';
 type View = 'play' | 'study' | 'practice' | 'lab' | 'stats' | 'guide';
 type Daily = {
@@ -1093,39 +1091,11 @@ function App() {
               </>
             )}
             {!mode && view === 'lab' && (
-              <>
-                <div className="page-heading">
-                  <div>
-                    <div className="eyebrow">STRATEGY LAB · PRACTICE WITHOUT THE PAIN</div>
-                    <h1>
-                      Test the decision.
-                      <br />
-                      <span>Not your savings.</span>
-                    </h1>
-                    <p>
-                      Drills that show how sizing, luck and market regimes shape results. Every
-                      market here is a labelled model.
-                    </p>
-                  </div>
-                </div>
-                <h2 className="lab-drill-title" id="event-lab">
-                  Event Lab · Live through market history, then measure the gaps
-                </h2>
-                <EventLab
-                  signedIn={!!player}
-                  onNeedAuth={() => setAuth(true)}
-                  onOpenReflect={() => navigate('stats')}
-                />
-                <h2 className="lab-drill-title lab-drill-spaced">
-                  Drill 1 · Same winning strategy, only the bet size changes
-                </h2>
-                <RiskSandbox />
-                <MarketLab />
-                <p className="muted path-note">
-                  This is a model for learning, not a forecast. Real markets add fees, slippage,
-                  gaps and emotions.
-                </p>
-              </>
+              <StrategyLab
+                signedIn={!!player}
+                onNeedAuth={() => setAuth(true)}
+                onOpenReflect={() => navigate('stats')}
+              />
             )}
             {!mode && view === 'guide' && (
               <div className="flex flex-col gap-6">
